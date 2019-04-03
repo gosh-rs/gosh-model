@@ -1,3 +1,9 @@
+// header
+
+// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*header][header:1]]
+//! The Lennard-Jones model for test purpose
+// header:1 ends here
+
 // imports
 
 // [[file:~/Workspace/Programming/gosh-rs/models/models.note::*imports][imports:1]]

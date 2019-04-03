@@ -19,11 +19,11 @@ use gchemol::prelude::*;
 // mods
 
 // [[file:~/Workspace/Programming/gosh-rs/models/models.note::*mods][mods:1]]
-//pub mod blackbox;
+pub mod blackbox;
 pub mod lj;
 
-//pub use crate::blackbox::BlackBox;
-//pub use crate::lj::LennardJones;
+pub use crate::blackbox::BlackBox;
+pub use crate::lj::LennardJones;
 // mods:1 ends here
 
 // imports
