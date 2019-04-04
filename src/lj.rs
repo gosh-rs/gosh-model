@@ -98,7 +98,7 @@ impl LennardJones {
 
 // [[file:~/Workspace/Programming/gosh-rs/models/models.note::*entry][entry:1]]
 impl ChemicalModel for LennardJones {
-    fn compute(&self, mol: &Molecule) -> Result<ModelProperties> {
+    fn compute(&mut self, mol: &Molecule) -> Result<ModelProperties> {
         if mol.lattice.is_some() {
             warn!("LJ model: periodic lattice will be ignored!");
         }

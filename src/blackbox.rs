@@ -12,8 +12,8 @@
 //! let dir = "/share/apps/mopac/sp";
 //! let bbm = BlackBox::from_dir(dir);
 //! 
-//! // use settings from current directory
-//! let bbm = BlackBox::default();
+//! // use settings from current environment.
+//! let bbm = BlackBox::from_env();
 //! 
 //! // calculate one molecule
 //! let mp = bbm.compute(&mol)?;
@@ -26,86 +26,49 @@
 // imports
 
 // [[file:~/Workspace/Programming/gosh-rs/models/models.note::*imports][imports:1]]
+use serde::Deserialize;
+
 use crate::common::*;
 use crate::*;
 use gchemol::Molecule;
-use gchemol::io;
 // imports:1 ends here
 
 // base
 
 // [[file:~/Workspace/Programming/gosh-rs/models/models.note::*base][base:1]]
+#[derive(Deserialize, Debug)]
+#[serde(default)]
 pub struct BlackBox {
-    pub runfile: PathBuf,
-    pub tplfile: PathBuf,
+    /// Set the run script file for calculation.
+    run_file: PathBuf,
+
+    /// Set the template file for rendering molecule.
+    tpl_file: PathBuf,
+
+    /// Set the root directory for scratch files.
+    scr_dir: Option<PathBuf>,
+
+    // for internal uses
+    #[serde(skip)]
+    temp_dir: Option<TempDir>,
 }
 
 impl Default for BlackBox {
     fn default() -> Self {
-        BlackBox {
-            runfile: "submit.sh".into(),
-            tplfile: "input.hbs".into(),
+        Self {
+            run_file: "submit.sh".into(),
+            tpl_file: "input.hbs".into(),
+            scr_dir: None,
+            temp_dir: None,
         }
     }
 }
 // base:1 ends here
 
-// pub
+// env
 
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*pub][pub:1]]
-impl BlackBox {
-    /// Construct blackbox model under directory context.
-    pub fn from_dir<P: AsRef<Path>>(dir: P) -> Self {
-        Self::from_dotenv(dir)
-    }
-
-    /// Construct from environment variables
-    pub fn from_env() -> Self {
-        unimplemented!()
-    }
-
-    /// Render input using template
-    pub fn render_input(&self, mol: &Molecule) -> Result<String> {
-        // 1. load input template
-        let template = io::read_file(&self.tplfile)
-            .map_err(|e| format_err!("failed to load template:\n {}", e))?;
-
-        // 2. render input text with the template
-        let txt = mol.render_with(&template)?;
-
-        Ok(txt)
-    }
-}
-// pub:1 ends here
-
-// scratch
-
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*scratch][scratch:1]]
-use tempfile::{tempdir, tempdir_in, TempDir};
-
-/// Create a temporary directory for scratch files. User can change the scratch
-/// root directory by setting BBM_SCR_DIR environment variable.
-pub fn new_scrdir() -> Result<TempDir> {
-    use std::env;
-
-    match env::var("BBM_SCR_DIR") {
-        Ok(scr_root) => {
-            info!("set scratch root directory as: {:?}", scr_root);
-            Ok(tempdir_in(scr_root)?)
-        }
-        Err(err) => {
-            debug!("scratch root is not set: {:?}", err);
-            Ok(tempdir()?)
-        }
-    }
-}
-// scratch:1 ends here
-
-// dotenv
-
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*dotenv][dotenv:1]]
+// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*env][env:1]]
 use dotenv;
-use quicli::prelude::*;
 use std::env;
 use std::path::{Path, PathBuf};
 
@@ -118,47 +81,137 @@ fn enter_dir_with_env(dir: &Path) -> Result<()> {
 
     // read environment variables
     dotenv::from_path(&dir.join(".env")).ok();
-
-    for (key, value) in env::vars() {
-        if key.starts_with("BBM") {
-            info!("{}: {}", key, value);
-        }
-    }
-
     Ok(())
 }
 
 impl BlackBox {
     /// Initialize from environment variables
+    ///
     /// # Panic
+    ///
     /// - Panic if the directory is inaccessible.
-    fn from_dotenv<P: AsRef<Path>>(dir: P) -> Self {
-        let dir = dir.as_ref();
-
+    ///
+    fn from_dotenv(dir: &Path) -> Self {
+        // read environment variables from .env config
         match enter_dir_with_env(dir) {
             Ok(_) => {}
             Err(e) => {
-                warn!("dotenv failed: {:?}", e);
+                warn!("no dotenv config found: {:?}", e);
             }
         }
 
-        let mut ropt = BlackBox::default();
-        if let Ok(f) = env::var("BBM_RUN_FILE") {
-            ropt.runfile = dir.join(f);
-        } else {
-            ropt.runfile = dir.join("submit.sh");
+        // construct from `BBM_*` environment variables
+        for (key, value) in env::vars() {
+            if key.starts_with("BBM") {
+                info!("{}: {}", key, value);
+            }
         }
 
-        if let Ok(f) = env::var("BBM_TPL_FILE") {
-            ropt.tplfile = dir.join(f);
-        } else {
-            ropt.tplfile = dir.join("input.hbs");
-        }
+        // canonicalize the file paths
+        let mut bbm = BlackBox::from_env();
+        bbm.run_file = dir.join(bbm.run_file);
+        bbm.tpl_file = dir.join(bbm.tpl_file);
 
-        ropt
+        bbm
+    }
+
+    /// Construct from environment variables
+    fn from_env() -> Self {
+        match envy::prefixed("BBM_").from_env::<BlackBox>() {
+            Ok(bbm) => bbm,
+            Err(error) => panic!("{:?}", error),
+        }
     }
 }
-// dotenv:1 ends here
+// env:1 ends here
+
+// call
+
+// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*call][call:1]]
+use tempfile::{tempdir, tempdir_in, TempDir};
+
+impl BlackBox {
+    /// Return a temporary directory under `BBM_SCR_ROOT` for safe calculation.
+    fn new_scratch_directory(&self) -> Result<TempDir> {
+        if let Some(ref scr_root) = self.scr_dir {
+            info!("set scratch root directory as: {:?}", scr_root);
+            Ok(tempdir_in(scr_root)?)
+        } else {
+            let tdir = tempdir()?;
+            debug!("scratch root directory is not set, use the system default.");
+            Ok(tdir)
+        }
+    }
+
+    /// Call external script
+    fn safe_call(&mut self, input: &str) -> Result<String> {
+        debug!("run script file: {}", self.run_file.display());
+
+        // re-use scratch directory for multi-step calculation.
+        let mut tdir_opt = self.temp_dir.take();
+        let tdir = tdir_opt.get_or_insert_with(|| {
+            self.new_scratch_directory()
+                .map_err(|e| format_err!("Failed to create scratch directory:\n {:?}", e))
+                .unwrap()
+        });
+        debug!("scratch dir: {}", tdir.path().display());
+
+        let cmdline = format!("{}", self.run_file.display());
+        debug!("submit cmdline: {}", cmdline);
+        let output = cmd!(&cmdline)
+            .dir(tdir.path())
+            .input(input)
+            .read()
+            .map_err(|e| format_err!("Job failed:\n {:?}: {:?}", self.run_file.display(), e))?;
+
+        // for re-using the scratch directory
+        self.temp_dir = tdir_opt;
+
+        Ok(output)
+    }
+}
+// call:1 ends here
+
+// pub
+
+// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*pub][pub:1]]
+impl BlackBox {
+    /// Construct blackbox model under directory context.
+    pub fn from_dir<P: AsRef<Path>>(dir: P) -> Self {
+        Self::from_dotenv(dir.as_ref())
+    }
+    /// Render input using template
+    pub fn render_input(&self, mol: &Molecule) -> Result<String> {
+        // 1. load input template
+        let template = gchemol::io::read_file(&self.tpl_file)
+            .map_err(|e| format_err!("failed to load template:\n {}", e))?;
+
+        // 2. render input text with the template
+        let txt = mol.render_with(&template)?;
+
+        Ok(txt)
+    }
+
+    /// Render input using template in bundle mode.
+    pub fn render_input_bundle(&self, mols: &[Molecule]) -> Result<String> {
+        let mut txt = String::new();
+        for mol in mols.iter() {
+            let part = self.render_input(&mol)?;
+            txt.push_str(&part);
+        }
+
+        Ok(txt)
+    }
+
+    // keep scratch files for user inspection of failure.
+    pub fn keep_scratch_files(self) {
+        if let Some(tdir) = self.temp_dir {
+            let path = tdir.into_path();
+            println!("Directory for scratch files: {}", path.display());
+        }
+    }
+}
+// pub:1 ends here
 
 // chemical model
 
@@ -166,13 +219,12 @@ impl BlackBox {
 use duct::cmd;
 
 impl ChemicalModel for BlackBox {
-    fn compute(&self, mol: &Molecule) -> Result<ModelProperties> {
+    fn compute(&mut self, mol: &Molecule) -> Result<ModelProperties> {
         // 1. render input text with the template
         let txt = self.render_input(&mol)?;
-        // debug!("{}", txt);
 
         // 2. call external engine
-        let output = safe_call(&self.runfile, &txt)?;
+        let output = self.safe_call(&txt)?;
 
         // 3. collect model properties
         let p: ModelProperties = output.parse()?;
@@ -180,51 +232,18 @@ impl ChemicalModel for BlackBox {
         Ok(p)
     }
 
-    fn compute_bundle(&self, mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
+    fn compute_bundle(&mut self, mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
         // 1. render input text with the template
-        let mut txt = String::new();
-        for mol in mols.iter() {
-            let part = self.render_input(&mol)?;
-            txt.push_str(&part);
-        }
+        let txt = self.render_input_bundle(mols)?;
 
         // 2. call external engine
-        info!("run in batch mode ...");
-        let output = safe_call(&self.runfile, &txt)?;
+        let output = self.safe_call(&txt)?;
 
         // 3. collect model properties
         let all = ModelProperties::parse_all(&output)?;
 
+
         Ok(all)
     }
-}
-
-/// Call external script
-fn safe_call<P: AsRef<Path>>(runfile: P, input: &str) -> Result<String> {
-    let runfile = runfile.as_ref();
-
-    info!("run script file: {}", &runfile.display());
-
-    let tdir = new_scrdir()?;
-
-    info!("scratch dir: {}", tdir.path().display());
-
-    let cmdline = format!("{}", runfile.display());
-    let output = cmd!(&cmdline)
-        .dir(tdir.path())
-        .input(input)
-        .read()
-        .map_err(|e| {
-            // keep temporary directory alive for debugging
-            let path = tdir.into_path();
-            error!(
-                "Job failed.\nPlease check scratch directory:\n {}",
-                path.display()
-            );
-
-            format_err!("failed to submit:\n {:?}: {:?}", &runfile.display(), e)
-        })?;
-
-    Ok(output)
 }
 // chemical model:1 ends here

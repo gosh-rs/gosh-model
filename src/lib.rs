@@ -224,10 +224,9 @@ fn parse_model_results(stream: &str) -> Result<Vec<ModelProperties>> {
 fn test_model_parse_results() {
     use approx::*;
 
-    use gchemol::io;
     use serde_json;
 
-    let txt = io::read_file("tests/files/sample.txt").unwrap();
+    let txt = gchemol::io::read_file("tests/files/sample.txt").unwrap();
     let r: ModelProperties = txt.parse().expect("model results");
 
     // serializing
@@ -254,11 +253,11 @@ fn test_model_parse_results() {
 // [[file:~/Workspace/Programming/gosh-rs/models/models.note::*chemical%20model][chemical model:1]]
 pub trait ChemicalModel {
     /// Define how to compute molecular properties, such as energy, forces, ...
-    fn compute(&self, mol: &Molecule) -> Result<ModelProperties>;
+    fn compute(&mut self, mol: &Molecule) -> Result<ModelProperties>;
 
     /// Define how to compute the properties of many molecules in bundle to
     /// reduce IO costs, especially useful for small molecules.
-    fn compute_bundle(&self, _mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
+    fn compute_bundle(&mut self, _mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
         unimplemented!()
     }
 }
