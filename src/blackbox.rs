@@ -19,7 +19,7 @@
 //! let mp = bbm.compute(&mol)?;
 //! 
 //! // calculate a list of molecules
-//! let mp_all = bbm.compute_many(&mols)?;
+//! let mp_all = bbm.compute_bundle(&mols)?;
 //! ```
 // header:1 ends here
 
@@ -180,7 +180,7 @@ impl ChemicalModel for BlackBox {
         Ok(p)
     }
 
-    fn compute_many(&self, mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
+    fn compute_bundle(&self, mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
         // 1. render input text with the template
         let mut txt = String::new();
         for mol in mols.iter() {

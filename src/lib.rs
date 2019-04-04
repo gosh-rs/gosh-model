@@ -256,8 +256,9 @@ pub trait ChemicalModel {
     /// Define how to compute molecular properties, such as energy, forces, ...
     fn compute(&self, mol: &Molecule) -> Result<ModelProperties>;
 
-    /// Define how to compute the properties of many molecules in batch
-    fn compute_many(&self, _mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
+    /// Define how to compute the properties of many molecules in bundle to
+    /// reduce IO costs, especially useful for small molecules.
+    fn compute_bundle(&self, _mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
         unimplemented!()
     }
 }
