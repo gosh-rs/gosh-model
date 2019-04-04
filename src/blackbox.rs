@@ -132,7 +132,7 @@ impl BlackBox {
     /// Initialize from environment variables
     /// # Panic
     /// - Panic if the directory is inaccessible.
-    pub fn from_dotenv<P: AsRef<Path>>(dir: P) -> Self {
+    fn from_dotenv<P: AsRef<Path>>(dir: P) -> Self {
         let dir = dir.as_ref();
 
         match enter_dir_with_env(dir) {
