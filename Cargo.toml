@@ -2,8 +2,8 @@
 
 # [[file:~/Workspace/Programming/gosh-rs/models/models.note::*cargo][cargo:1]]
 [package]
-name = "gosh_models"
-version = "0.0.2"
+name = "gosh-models"
+version = "0.0.3"
 edition = "2018"
 authors = ["Wenping Guo <ybyygu@gmail.com>"]
 
@@ -16,8 +16,7 @@ dotenv = "0.13"
 duct = "0.12"
 tempfile = "3.0"
 vecfx = {git = "https://github.com/gchemol/vecfx.git", tag="v0.0.3", features=["nalgebra"]}
-textparser = {git = "https://github.com/ybyygu/text-parser.git", tag="v0.0.2" }
-gchemol = {path = "/home/ybyygu/Workspace/Programming/gchemol"}
+gchemol = {git = "https://github.com/ybyygu/gchemol.git", tag="v0.0.28"}
 
 [dev-dependencies]
 approx = "0.3"
