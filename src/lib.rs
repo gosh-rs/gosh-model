@@ -140,7 +140,7 @@ fn parse_model_results_single(part: &[&str]) -> Result<ModelProperties> {
 
     // parse record values
     if records.len() < 1 {
-        warn!("collected no results!");
+        warn!("collected no results! Please check if the stream is clean.");
     }
 
     let mut results = ModelProperties::default();
