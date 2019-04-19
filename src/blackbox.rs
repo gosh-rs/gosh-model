@@ -149,25 +149,25 @@ impl BlackBox {
 
         // re-use scratch directory for multi-step calculation.
         let mut tdir_opt = self.temp_dir.take();
+
         let tdir = tdir_opt.get_or_insert_with(|| {
             self.new_scratch_directory()
                 .map_err(|e| format_err!("Failed to create scratch directory:\n {:?}", e))
                 .unwrap()
         });
-        debug!("scratch dir: {}", tdir.path().display());
+
+        let ptdir = tdir.path();
+        debug!("scratch dir: {}", ptdir.display());
 
         let cmdline = format!("{}", self.run_file.display());
         debug!("submit cmdline: {}", cmdline);
-        let output = cmd!(&cmdline)
-            .dir(tdir.path())
-            .input(input)
-            .read()
-            .map_err(|e| format_err!("Job failed:\n {:?}: {:?}", self.run_file.display(), e))?;
+
+        let cmd_results = cmd!(&cmdline).dir(ptdir).input(input).read();
 
         // for re-using the scratch directory
         self.temp_dir = tdir_opt;
 
-        Ok(output)
+        Ok(cmd_results?)
     }
 }
 // call:1 ends here
@@ -180,11 +180,14 @@ impl BlackBox {
     pub fn from_dir<P: AsRef<Path>>(dir: P) -> Self {
         Self::from_dotenv(dir.as_ref())
     }
+
     /// Render input using template
     pub fn render_input(&self, mol: &Molecule) -> Result<String> {
         // 1. load input template
-        let template = gchemol::io::read_file(&self.tpl_file)
-            .map_err(|e| format_err!("failed to load template:\n {}", e))?;
+        let template = gchemol::io::read_file(&self.tpl_file).map_err(|e| {
+            error!("failed to load template");
+            e
+        })?;
 
         // 2. render input text with the template
         let txt = mol.render_with(&template)?;
@@ -208,6 +211,8 @@ impl BlackBox {
         if let Some(tdir) = self.temp_dir {
             let path = tdir.into_path();
             println!("Directory for scratch files: {}", path.display());
+        } else {
+            warn!("No temp dir found.");
         }
     }
 }
