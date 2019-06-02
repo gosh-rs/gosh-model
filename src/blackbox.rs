@@ -147,7 +147,8 @@ impl BlackBox {
     fn safe_call(&mut self, input: &str) -> Result<String> {
         debug!("run script file: {}", self.run_file.display());
 
-        // re-use scratch directory for multi-step calculation.
+        // re-use the same scratch directory for multi-step calculation, e.g.
+        // optimization.
         let mut tdir_opt = self.temp_dir.take();
 
         let tdir = tdir_opt.get_or_insert_with(|| {
@@ -162,7 +163,12 @@ impl BlackBox {
         let cmdline = format!("{}", self.run_file.display());
         debug!("submit cmdline: {}", cmdline);
 
-        let cmd_results = cmd!(&cmdline).dir(ptdir).input(input).read();
+        let cdir = std::env::current_dir()?;
+        let cmd_results = cmd!(&cmdline)
+            .dir(ptdir)
+            .env("BBM_WRK_DIR", cdir)
+            .input(input)
+            .read();
 
         // for re-using the scratch directory
         self.temp_dir = tdir_opt;
@@ -218,9 +224,9 @@ impl BlackBox {
 }
 // pub:1 ends here
 
-// chemical model
+// pub/chemical model
 
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*chemical%20model][chemical model:1]]
+// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*pub/chemical%20model][pub/chemical model:1]]
 use duct::cmd;
 
 impl ChemicalModel for BlackBox {
@@ -251,4 +257,4 @@ impl ChemicalModel for BlackBox {
         Ok(all)
     }
 }
-// chemical model:1 ends here
+// pub/chemical model:1 ends here
