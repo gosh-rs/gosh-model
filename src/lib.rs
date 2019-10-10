@@ -252,12 +252,18 @@ fn test_model_parse_results() {
 
 // [[file:~/Workspace/Programming/gosh-rs/models/models.note::*chemical%20model][chemical model:1]]
 pub trait ChemicalModel {
-    /// Define how to compute molecular properties, such as energy, forces, ...
+    /// Define how to compute molecular properties, such as energy, forces, or
+    /// structure ...
     fn compute(&mut self, mol: &Molecule) -> Result<ModelProperties>;
 
-    /// Define how to compute the properties of many molecules in bundle to
+    #[deprecated(note = "use compute_bunch instead")]
+    fn compute_bundle(&mut self, mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
+        self.compute_bunch(mols)
+    }
+
+    /// Define how to compute the properties of many molecules in bunch to
     /// reduce IO costs, especially useful for small molecules.
-    fn compute_bundle(&mut self, _mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
+    fn compute_bunch(&mut self, mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
         unimplemented!()
     }
 }

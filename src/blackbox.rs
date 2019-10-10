@@ -19,7 +19,7 @@
 //! let mp = bbm.compute(&mol)?;
 //! 
 //! // calculate a list of molecules
-//! let mp_all = bbm.compute_bundle(&mols)?;
+//! let mp_all = bbm.compute_bunch(&mols)?;
 //! ```
 // header:1 ends here
 
@@ -201,8 +201,8 @@ impl BlackBox {
         Ok(txt)
     }
 
-    /// Render input using template in bundle mode.
-    pub fn render_input_bundle(&self, mols: &[Molecule]) -> Result<String> {
+    /// Render input using template in bunch mode.
+    pub fn render_input_bunch(&self, mols: &[Molecule]) -> Result<String> {
         let mut txt = String::new();
         for mol in mols.iter() {
             let part = self.render_input(&mol)?;
@@ -243,9 +243,9 @@ impl ChemicalModel for BlackBox {
         Ok(p)
     }
 
-    fn compute_bundle(&mut self, mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
+    fn compute_bunch(&mut self, mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
         // 1. render input text with the template
-        let txt = self.render_input_bundle(mols)?;
+        let txt = self.render_input_bunch(mols)?;
 
         // 2. call external engine
         let output = self.safe_call(&txt)?;
