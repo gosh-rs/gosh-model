@@ -153,7 +153,7 @@ impl BlackBox {
 
         let tdir = tdir_opt.get_or_insert_with(|| {
             self.new_scratch_directory()
-                .map_err(|e| format_err!("Failed to create scratch directory:\n {:?}", e))
+                .with_context(|e| format!("Failed to create scratch directory:\n {:?}", e))
                 .unwrap()
         });
 
@@ -167,13 +167,46 @@ impl BlackBox {
         let cmd_results = cmd!(&cmdline)
             .dir(ptdir)
             .env("BBM_WRK_DIR", cdir)
-            .input(input)
+            .stdin_bytes(input)
             .read();
 
         // for re-using the scratch directory
         self.temp_dir = tdir_opt;
 
         Ok(cmd_results?)
+    }
+
+    // FIXME: adhoc hacking
+    /// call with a runner for reaping child processes
+    fn safe_call_(&mut self, input: &str) -> Result<String> {
+        debug!("run script file: {}", self.run_file.display());
+
+        // re-use the same scratch directory for multi-step calculation, e.g.
+        // optimization.
+        let mut tdir_opt = self.temp_dir.take();
+
+        let tdir = tdir_opt.get_or_insert_with(|| {
+            self.new_scratch_directory()
+                .with_context(|e| format!("Failed to create scratch directory:\n {:?}", e))
+                .unwrap()
+        });
+
+        let ptdir = tdir.path();
+        debug!("scratch dir: {}", ptdir.display());
+
+        let cmdline = format!("{}", self.run_file.display());
+        debug!("submit cmdline: {}", cmdline);
+
+        let runner = runners::local::Runner::new(&self.run_file);
+
+        let cdir = std::env::current_dir()?;
+        std::env::set_var("BBM_WRK_DIR", cdir);
+        let cmd_results = runners::local::run_adhoc_input_output(&runner, input, ptdir)?;
+
+        // for re-using the scratch directory
+        self.temp_dir = tdir_opt;
+
+        Ok(cmd_results)
     }
 }
 // call:1 ends here
