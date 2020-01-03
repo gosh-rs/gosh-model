@@ -2,8 +2,7 @@
 
 // [[file:~/Workspace/Programming/gosh-rs/models/models.note::*common][common:1]]
 pub(crate) mod common {
-    pub use quicli::prelude::*;
-    pub type Result<T> = ::std::result::Result<T, Error>;
+    pub use guts::prelude::*;
 }
 // common:1 ends here
 
@@ -107,7 +106,7 @@ impl fmt::Display for ModelProperties {
 }
 
 impl FromStr for ModelProperties {
-    type Err = Error;
+    type Err = guts::failure::Error;
 
     fn from_str(s: &str) -> Result<Self> {
         let all = parse_model_results(s)?;
