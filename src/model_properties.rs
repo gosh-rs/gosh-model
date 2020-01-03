@@ -194,6 +194,9 @@ fn parse_model_results(stream: &str) -> Result<Vec<ModelProperties>> {
 }
 // display/parse:1 ends here
 
+use gchemol::Atom;
+use gchemol::Lattice;
+
 impl ModelProperties {
     /// Set item energy.
     pub fn set_energy(&mut self, e: f64) {
@@ -235,9 +238,45 @@ impl ModelProperties {
         self.forces.as_ref()
     }
 
+    /// Get molecule structure.
+    pub fn get_molecule(&self) -> Option<&Molecule> {
+        self.molecule.as_ref()
+    }
+
     /// Get force constants component.
     pub fn get_force_constants(&self) -> Option<&Vec<[f64; 3]>> {
         self.force_constants.as_ref()
+    }
+
+    #[cfg(feature = "adhoc")]
+    /// Set molecule structure.
+    ///
+    /// # Parameters
+    ///
+    /// * atoms: a list of symbol and position pairs
+    ///
+    /// * cell: three Lattice vectors array
+    ///
+    /// * scaled: if input positions are in scaled coordinates
+    pub fn set_structure<A, C>(&mut self, atoms: A, cell: Option<C>, scaled: bool)
+    where
+        A: IntoIterator,
+        A::Item: Into<Atom>,
+        C: Into<[[f64; 3]; 3]>,
+    {
+        let mut mol = Molecule::new("mp");
+        mol.add_atoms_from(atoms);
+
+        if let Some(lat) = cell.map(|x| Lattice::new(x)) {
+            mol.set_lattice(lat);
+            if scaled {
+                let positions = mol.positions();
+                mol.set_scaled_positions(&positions).unwrap();
+                let positions = mol.positions();
+            }
+        }
+
+        self.molecule = Some(mol);
     }
 }
 
