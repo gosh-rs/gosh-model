@@ -19,13 +19,13 @@ const MODEL_PROPERTIES_FORMAT_VERSION: &str = "0.1";
 /// The computed results by external application
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ModelProperties {
-    pub energy: Option<f64>,
-    pub forces: Option<Vec<[f64; 3]>>,
-    pub dipole: Option<[f64; 3]>,
+    energy: Option<f64>,
+    forces: Option<Vec<[f64; 3]>>,
+    dipole: Option<[f64; 3]>,
     #[serde(skip_deserializing, skip_serializing)]
-    pub molecule: Option<Molecule>,
+    molecule: Option<Molecule>,
     #[serde(skip_deserializing, skip_serializing)]
-    pub force_constants: Option<Vec<[f64; 3]>>,
+    force_constants: Option<Vec<[f64; 3]>>,
 }
 // base:1 ends here
 
@@ -193,6 +193,53 @@ fn parse_model_results(stream: &str) -> Result<Vec<ModelProperties>> {
     Ok(all_results)
 }
 // display/parse:1 ends here
+
+impl ModelProperties {
+    /// Set item energy.
+    pub fn set_energy(&mut self, e: f64) {
+        self.energy = Some(e);
+    }
+
+    /// Set item forces.
+    pub fn set_forces(&mut self, f: Vec<[f64; 3]>) {
+        self.forces = Some(f);
+    }
+
+    /// Set item dipole.
+    pub fn set_dipole(&mut self, d: [f64; 3]) {
+        self.dipole = Some(d);
+    }
+
+    /// Set item Molecule.
+    pub fn set_molecule(&mut self, m: Molecule) {
+        self.molecule = Some(m);
+    }
+
+    /// Set item force constants.
+    pub fn set_force_constants(&mut self, fc: Vec<[f64; 3]>) {
+        self.force_constants = Some(fc);
+    }
+
+    /// Get energy component.
+    pub fn get_energy(&self) -> Option<f64> {
+        self.energy
+    }
+
+    /// Get dipole moment component.
+    pub fn get_dipole(&self) -> Option<[f64; 3]> {
+        self.dipole
+    }
+
+    /// Get forces component.
+    pub fn get_forces(&self) -> Option<&Vec<[f64; 3]>> {
+        self.forces.as_ref()
+    }
+
+    /// Get force constants component.
+    pub fn get_force_constants(&self) -> Option<&Vec<[f64; 3]>> {
+        self.force_constants.as_ref()
+    }
+}
 
 // test
 

@@ -131,10 +131,10 @@ impl ChemicalModel for LennardJones {
         }
 
         let mut mr = ModelProperties::default();
-        mr.energy = Some(energy);
+        mr.set_energy(energy);
 
         if self.derivative_order >= 1 {
-            mr.forces = Some(forces);
+            mr.set_forces(forces);
         }
         if self.derivative_order >= 2 {
             unimplemented!();
@@ -158,10 +158,10 @@ fn test_lj_model() {
     // LJ3
     let mol = Molecule::from_file("tests/files/LennardJones/LJ3.xyz").expect("lj3 test file");
     let mr = lj.compute(&mol).expect("lj model: LJ3");
-    let e = mr.energy.expect("lj model energy: LJ3");
+    let e = mr.get_energy().expect("lj model energy: LJ3");
     assert_relative_eq!(-3.0, e, epsilon = 1e-3);
 
-    let forces = mr.forces.expect("lj model forces: LJ3");
+    let forces = mr.get_forces().expect("lj model forces: LJ3");
     for i in 0..mol.natoms() {
         for j in 0..3 {
             assert_relative_eq!(0.0, forces[i][j], epsilon = 1e-3);
@@ -171,10 +171,10 @@ fn test_lj_model() {
     // LJ38
     let mol = Molecule::from_file("tests/files/LennardJones/LJ38.xyz").expect("lj38 test file");
     let mr = lj.compute(&mol).expect("lj model: LJ38");
-    let e = mr.energy.expect("lj model energy: LJ38");
+    let e = mr.get_energy().expect("lj model energy: LJ38");
     assert_relative_eq!(-173.92843, e, epsilon = 1e-3);
 
-    let forces = mr.forces.expect("lj model forces: LJ3");
+    let forces = mr.get_forces().expect("lj model forces: LJ3");
     for i in 0..mol.natoms() {
         for j in 0..3 {
             assert_relative_eq!(0.0, forces[i][j], epsilon = 1e-3);
