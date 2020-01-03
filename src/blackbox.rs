@@ -176,38 +176,38 @@ impl BlackBox {
         Ok(cmd_results?)
     }
 
-    // FIXME: adhoc hacking
-    /// call with a runner for reaping child processes
-    fn safe_call_(&mut self, input: &str) -> Result<String> {
-        debug!("run script file: {}", self.run_file.display());
+    // // FIXME: adhoc hacking
+    // /// call with a runner for reaping child processes
+    // fn safe_call_(&mut self, input: &str) -> Result<String> {
+    //     debug!("run script file: {}", self.run_file.display());
 
-        // re-use the same scratch directory for multi-step calculation, e.g.
-        // optimization.
-        let mut tdir_opt = self.temp_dir.take();
+    //     // re-use the same scratch directory for multi-step calculation, e.g.
+    //     // optimization.
+    //     let mut tdir_opt = self.temp_dir.take();
 
-        let tdir = tdir_opt.get_or_insert_with(|| {
-            self.new_scratch_directory()
-                .with_context(|e| format!("Failed to create scratch directory:\n {:?}", e))
-                .unwrap()
-        });
+    //     let tdir = tdir_opt.get_or_insert_with(|| {
+    //         self.new_scratch_directory()
+    //             .with_context(|e| format!("Failed to create scratch directory:\n {:?}", e))
+    //             .unwrap()
+    //     });
 
-        let ptdir = tdir.path();
-        debug!("scratch dir: {}", ptdir.display());
+    //     let ptdir = tdir.path();
+    //     debug!("scratch dir: {}", ptdir.display());
 
-        let cmdline = format!("{}", self.run_file.display());
-        debug!("submit cmdline: {}", cmdline);
+    //     let cmdline = format!("{}", self.run_file.display());
+    //     debug!("submit cmdline: {}", cmdline);
 
-        let runner = runners::local::Runner::new(&self.run_file);
+    //     let runner = runners::local::Runner::new(&self.run_file);
 
-        let cdir = std::env::current_dir()?;
-        std::env::set_var("BBM_WRK_DIR", cdir);
-        let cmd_results = runners::local::run_adhoc_input_output(&runner, input, ptdir)?;
+    //     let cdir = std::env::current_dir()?;
+    //     std::env::set_var("BBM_WRK_DIR", cdir);
+    //     let cmd_results = runners::local::run_adhoc_input_output(&runner, input, ptdir)?;
 
-        // for re-using the scratch directory
-        self.temp_dir = tdir_opt;
+    //     // for re-using the scratch directory
+    //     self.temp_dir = tdir_opt;
 
-        Ok(cmd_results)
-    }
+    //     Ok(cmd_results)
+    // }
 }
 // call:1 ends here
 
@@ -259,7 +259,7 @@ impl BlackBox {
 
 // pub/chemical model
 
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*pub/chemical%20model][pub/chemical model:1]]
+// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*pub/chemical model][pub/chemical model:1]]
 use duct::cmd;
 
 impl ChemicalModel for BlackBox {
