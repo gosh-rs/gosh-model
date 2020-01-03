@@ -19,18 +19,13 @@ const MODEL_PROPERTIES_FORMAT_VERSION: &str = "0.1";
 /// The computed results by external application
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ModelProperties {
-    // FIXME: remove pub
-    pub energy: Option<f64>,
-    // FIXME: remove pub
-    pub forces: Option<Vec<[f64; 3]>>,
-    // FIXME: remove pub
-    pub dipole: Option<[f64; 3]>,
-    // FIXME: remove pub
+    energy: Option<f64>,
+    forces: Option<Vec<[f64; 3]>>,
+    dipole: Option<[f64; 3]>,
     #[serde(skip_deserializing, skip_serializing)]
-    pub molecule: Option<Molecule>,
-    // FIXME: remove pub
+    molecule: Option<Molecule>,
     #[serde(skip_deserializing, skip_serializing)]
-    pub force_constants: Option<Vec<[f64; 3]>>,
+    force_constants: Option<Vec<[f64; 3]>>,
 }
 // base:1 ends here
 
@@ -202,7 +197,6 @@ fn parse_model_results(stream: &str) -> Result<Vec<ModelProperties>> {
 impl ModelProperties {
     /// Set item energy.
     pub fn set_energy(&mut self, e: f64) {
-        assert!(e.is_sign_positive(), "invalid energy: {}", e);
         self.energy = Some(e);
     }
 
@@ -226,19 +220,23 @@ impl ModelProperties {
         self.force_constants = Some(fc);
     }
 
-    pub fn energy(&self) -> Option<f64> {
+    /// Get energy component.
+    pub fn get_energy(&self) -> Option<f64> {
         self.energy
     }
 
-    pub fn dipole(&self) -> Option<[f64; 3]> {
+    /// Get dipole moment component.
+    pub fn get_dipole(&self) -> Option<[f64; 3]> {
         self.dipole
     }
 
-    pub fn forces(&self) -> Option<&Vec<[f64; 3]>> {
+    /// Get forces component.
+    pub fn get_forces(&self) -> Option<&Vec<[f64; 3]>> {
         self.forces.as_ref()
     }
 
-    pub fn force_constants(&self) -> Option<&Vec<[f64; 3]>> {
+    /// Get force constants component.
+    pub fn get_force_constants(&self) -> Option<&Vec<[f64; 3]>> {
         self.force_constants.as_ref()
     }
 }
