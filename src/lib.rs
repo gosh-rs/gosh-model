@@ -1,14 +1,17 @@
 // common
 
 // [[file:~/Workspace/Programming/gosh-rs/models/models.note::*common][common:1]]
-pub(crate) mod common {
+pub(crate) mod core {
+    // re-exports core crates
+    pub use gosh_core::*;
+
     pub use guts::prelude::*;
 }
 // common:1 ends here
 
-// mods
+// mods/exports
 
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*mods][mods:1]]
+// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*mods/exports][mods/exports:1]]
 mod model_properties;
 
 pub mod blackbox;
@@ -17,15 +20,15 @@ pub mod lj;
 pub use crate::blackbox::BlackBox;
 pub use crate::lj::LennardJones;
 pub use crate::model_properties::*;
-// mods:1 ends here
+// mods/exports:1 ends here
 
 // chemical model
 
 // [[file:~/Workspace/Programming/gosh-rs/models/models.note::*chemical model][chemical model:1]]
-use crate::common::*;
+use crate::core::*;
 
-use gchemol::Molecule;
 use gchemol::prelude::*;
+use gchemol::Molecule;
 
 pub trait ChemicalModel {
     /// Define how to compute molecular properties, such as energy, forces, or
