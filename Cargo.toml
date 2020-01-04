@@ -16,9 +16,13 @@ duct = "0.13"
 tempfile = "3.0"
 # runners = {path = "../runners"}
 vecfx = {git = "https://github.com/gchemol/vecfx.git", features=["nalgebra"]}
-guts = { git = "https://github.com/ybyygu/guts.git", branch = "dev" }
-gchemol = {git = "https://github.com/ybyygu/gchemol.git"}
+guts = { git = "https://github.com/ybyygu/guts.git", branch="dev" }
+#gchemol = {git = "https://github.com/ybyygu/gchemol.git", branch="dev"}
+gchemol = {path = "../../gchemol-rs/gchemol/gchemol"}
 
 [dev-dependencies]
 approx = "0.3"
+
+[features]
+adhoc = []
 # cargo:1 ends here
