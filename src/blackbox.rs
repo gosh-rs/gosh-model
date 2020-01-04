@@ -28,8 +28,9 @@
 // [[file:~/Workspace/Programming/gosh-rs/models/models.note::*imports][imports:1]]
 use serde::Deserialize;
 
-use crate::common::*;
+use crate::core::*;
 use crate::*;
+
 use gchemol::Molecule;
 // imports:1 ends here
 

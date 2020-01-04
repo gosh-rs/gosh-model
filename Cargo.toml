@@ -14,11 +14,12 @@ serde_json = "1.0"
 dotenv = "0.13"
 duct = "0.13"
 tempfile = "3.0"
-# runners = {path = "../runners"}
-vecfx = {git = "https://github.com/gchemol/vecfx.git", features=["nalgebra"]}
-guts = { git = "https://github.com/ybyygu/guts.git", branch = "dev" }
-gchemol = {git = "https://github.com/ybyygu/gchemol.git"}
+gosh-core = { git = "https://github.com/gosh-rs/gosh-core.git" }
+# gosh-core = { path = "../core" }
 
 [dev-dependencies]
 approx = "0.3"
+
+[features]
+adhoc = []
 # cargo:1 ends here

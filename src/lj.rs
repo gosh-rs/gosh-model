@@ -7,9 +7,10 @@
 // imports
 
 // [[file:~/Workspace/Programming/gosh-rs/models/models.note::*imports][imports:1]]
-use crate::common::*;
-use vecfx::*;
+use crate::core::*;
+
 use gchemol::Molecule;
+use vecfx::*;
 
 use crate::*;
 // imports:1 ends here
