@@ -2,10 +2,9 @@
 
 // [[file:~/Workspace/Programming/gosh-rs/models/models.note::*common][common:1]]
 pub(crate) mod core {
-    // re-exports core crates
     pub use gosh_core::*;
 
-    pub use guts::prelude::*;
+    pub use gut::prelude::*;
 }
 // common:1 ends here
 

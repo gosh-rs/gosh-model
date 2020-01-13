@@ -114,11 +114,12 @@ impl ChemicalModel for LennardJones {
         }
 
         // calculate energy and forces
-        let positions = mol.positions();
-        let dm = mol.distance_matrix();
+        let positions: Vec<_> = mol.positions().collect();
+        let dm = gchemol::geom::get_distance_matrix(&positions);
         for i in 0..natoms {
             for j in 0..i {
-                let r = dm[(i, j)];
+                // let r = dm[(i, j)];
+                let r = dm[i][j];
                 energy += self.pair_energy(r);
                 if self.derivative_order >= 1 {
                     let g = self.pair_gradient(r);

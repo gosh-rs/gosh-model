@@ -84,7 +84,7 @@ impl fmt::Display for ModelProperties {
 }
 
 impl FromStr for ModelProperties {
-    type Err = guts::failure::Error;
+    type Err = gut::prelude::Error;
 
     fn from_str(s: &str) -> Result<Self> {
         let all = parse_model_results(s)?;
@@ -146,7 +146,7 @@ fn parse_model_results_single(part: &[&str]) -> Result<ModelProperties> {
             "@structure" => {
                 let mut s = lines.join("\n");
                 s.push_str("\n\n");
-                let mol = Molecule::parse_from(s, "text/pxyz")?;
+                let mol = Molecule::from_str(&s, "text/pxyz")?;
                 results.molecule = Some(mol);
             }
             "@dipole" => {
@@ -264,15 +264,13 @@ impl ModelProperties {
         A::Item: Into<Atom>,
         C: Into<[[f64; 3]; 3]>,
     {
-        let mut mol = Molecule::new("mp");
-        mol.add_atoms_from(atoms);
+        let mut mol = Molecule::from_atoms(atoms);
 
-        if let Some(lat) = cell.map(|x| Lattice::new(x)) {
+        if let Some(lat) = cell.map(|x| Lattice::new(x.into())) {
             mol.set_lattice(lat);
             if scaled {
-                let positions = mol.positions();
-                mol.set_scaled_positions(&positions).unwrap();
-                let positions = mol.positions();
+                let positions: Vec<_> = mol.positions().collect();
+                mol.set_scaled_positions(positions);
             }
         }
 

@@ -154,8 +154,7 @@ impl BlackBox {
 
         let tdir = tdir_opt.get_or_insert_with(|| {
             self.new_scratch_directory()
-                .with_context(|e| format!("Failed to create scratch directory:\n {:?}", e))
-                .unwrap()
+                .with_context(|| format!("Failed to create scratch directory")).unwrap()
         });
 
         let ptdir = tdir.path();
@@ -188,7 +187,7 @@ impl BlackBox {
 
     //     let tdir = tdir_opt.get_or_insert_with(|| {
     //         self.new_scratch_directory()
-    //             .with_context(|e| format!("Failed to create scratch directory:\n {:?}", e))
+    //             .with_context(|| format!("Failed to create scratch directory:\n"))
     //             .unwrap()
     //     });
 

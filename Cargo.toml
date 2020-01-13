@@ -3,7 +3,7 @@
 # [[file:~/Workspace/Programming/gosh-rs/models/models.note::*cargo][cargo:1]]
 [package]
 name = "gosh-models"
-version = "0.0.7"
+version = "0.0.8"
 edition = "2018"
 authors = ["Wenping Guo <ybyygu@gmail.com>"]
 
@@ -14,8 +14,7 @@ serde_json = "1.0"
 dotenv = "0.13"
 duct = "0.13"
 tempfile = "3.0"
-gosh-core = { git = "https://github.com/gosh-rs/gosh-core.git" }
-# gosh-core = { path = "../core" }
+gosh-core = { version = "0.0.1" }
 
 [dev-dependencies]
 approx = "0.3"
