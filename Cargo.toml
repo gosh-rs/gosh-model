@@ -2,7 +2,7 @@
 
 # [[file:~/Workspace/Programming/gosh-rs/models/models.note::*cargo][cargo:1]]
 [package]
-name = "gosh-models"
+name = "gosh-model"
 version = "0.0.8"
 edition = "2018"
 authors = ["Wenping Guo <ybyygu@gmail.com>"]
