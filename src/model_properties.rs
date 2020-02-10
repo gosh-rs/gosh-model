@@ -194,9 +194,6 @@ fn parse_model_results(stream: &str) -> Result<Vec<ModelProperties>> {
 }
 // display/parse:1 ends here
 
-use gchemol::Atom;
-use gchemol::Lattice;
-
 impl ModelProperties {
     /// Set item energy.
     pub fn set_energy(&mut self, e: f64) {
