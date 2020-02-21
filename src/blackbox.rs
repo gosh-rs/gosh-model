@@ -1,6 +1,6 @@
 // header
 
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*header][header:1]]
+// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*header][header:1]]
 //! Represents an universal blackbox (external) model defined by user scripts
 //!
 //! # Usage
@@ -25,7 +25,7 @@
 
 // imports
 
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*imports][imports:1]]
+// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*imports][imports:1]]
 use serde::Deserialize;
 
 use crate::core::*;
@@ -36,7 +36,7 @@ use gchemol::Molecule;
 
 // base
 
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*base][base:1]]
+// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*base][base:1]]
 #[derive(Deserialize, Debug)]
 #[serde(default)]
 pub struct BlackBox {
@@ -68,7 +68,7 @@ impl Default for BlackBox {
 
 // env
 
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*env][env:1]]
+// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*env][env:1]]
 use dotenv;
 use std::env;
 use std::path::{Path, PathBuf};
@@ -128,7 +128,7 @@ impl BlackBox {
 
 // call
 
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*call][call:1]]
+// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*call][call:1]]
 use tempfile::{tempdir, tempdir_in, TempDir};
 
 impl BlackBox {
@@ -213,7 +213,7 @@ impl BlackBox {
 
 // pub
 
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*pub][pub:1]]
+// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*pub][pub:1]]
 impl BlackBox {
     /// Construct blackbox model under directory context.
     pub fn from_dir<P: AsRef<Path>>(dir: P) -> Self {
@@ -222,14 +222,8 @@ impl BlackBox {
 
     /// Render input using template
     pub fn render_input(&self, mol: &Molecule) -> Result<String> {
-        // 1. load input template
-        let template = gchemol::io::read_file(&self.tpl_file).map_err(|e| {
-            error!("failed to load template");
-            e
-        })?;
-
-        // 2. render input text with the template
-        let txt = mol.render_with(&template)?;
+        // render input text with external template file
+        let txt = mol.render_with(&self.tpl_file)?;
 
         Ok(txt)
     }
@@ -259,19 +253,19 @@ impl BlackBox {
 
 // pub/chemical model
 
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*pub/chemical model][pub/chemical model:1]]
+// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*pub/chemical model][pub/chemical model:1]]
 use duct::cmd;
 
 impl ChemicalModel for BlackBox {
     fn compute(&mut self, mol: &Molecule) -> Result<ModelProperties> {
         // 1. render input text with the template
-        let txt = self.render_input(&mol)?;
+        let txt = self.render_input(&mol).context("render input")?;
 
         // 2. call external engine
-        let output = self.safe_call(&txt)?;
+        let output = self.safe_call(&txt).context("call external model")?;
 
         // 3. collect model properties
-        let p: ModelProperties = output.parse()?;
+        let p: ModelProperties = output.parse().context("parse results")?;
 
         Ok(p)
     }
@@ -285,7 +279,6 @@ impl ChemicalModel for BlackBox {
 
         // 3. collect model properties
         let all = ModelProperties::parse_all(&output)?;
-
 
         Ok(all)
     }
