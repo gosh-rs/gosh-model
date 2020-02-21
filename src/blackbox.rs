@@ -267,6 +267,17 @@ impl ChemicalModel for BlackBox {
         // 3. collect model properties
         let p: ModelProperties = output.parse().context("parse results")?;
 
+        // sanity checking: the associated structure should have the same number
+        // of atoms
+        debug_assert!({
+            let n = mol.natoms();
+            if let Some(pmol) = p.get_molecule() {
+                pmol.natoms() == n
+            } else {
+                true
+            }
+        });
+
         Ok(p)
     }
 
@@ -279,6 +290,9 @@ impl ChemicalModel for BlackBox {
 
         // 3. collect model properties
         let all = ModelProperties::parse_all(&output)?;
+
+        // one-to-one mapping
+        debug_assert_eq!(mols.len(), all.len());
 
         Ok(all)
     }
