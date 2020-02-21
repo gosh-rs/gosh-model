@@ -8,8 +8,8 @@ use std::str::FromStr;
 use crate::core::*;
 
 use gchemol::prelude::*;
-use gchemol::Lattice;
 use gchemol::Atom;
+use gchemol::Lattice;
 use gchemol::Molecule;
 // imports:1 ends here
 

@@ -1,12 +1,12 @@
 // header
 
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*header][header:1]]
+// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*header][header:1]]
 //! The Lennard-Jones model for test purpose
 // header:1 ends here
 
 // imports
 
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*imports][imports:1]]
+// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*imports][imports:1]]
 use crate::core::*;
 
 use gchemol::Molecule;
@@ -17,7 +17,7 @@ use crate::*;
 
 // core
 
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*core][core:1]]
+// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*core][core:1]]
 #[derive(Clone, Copy, Debug)]
 pub struct LennardJones {
     /// Energy constant of the Lennard-Jones potential
@@ -97,7 +97,7 @@ impl LennardJones {
 
 // entry
 
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*entry][entry:1]]
+// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*entry][entry:1]]
 impl ChemicalModel for LennardJones {
     fn compute(&mut self, mol: &Molecule) -> Result<ModelProperties> {
         if mol.lattice.is_some() {
@@ -118,7 +118,6 @@ impl ChemicalModel for LennardJones {
         let dm = gchemol::geom::get_distance_matrix(&positions);
         for i in 0..natoms {
             for j in 0..i {
-                // let r = dm[(i, j)];
                 let r = dm[i][j];
                 energy += self.pair_energy(r);
                 if self.derivative_order >= 1 {
@@ -149,7 +148,7 @@ impl ChemicalModel for LennardJones {
 
 // test
 
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*test][test:1]]
+// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*test][test:1]]
 #[test]
 fn test_lj_model() {
     use approx::*;
