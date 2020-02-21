@@ -1,6 +1,6 @@
 // imports
 
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*imports][imports:1]]
+// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*imports][imports:1]]
 use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
@@ -15,7 +15,7 @@ use gchemol::Molecule;
 
 // base
 
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*base][base:1]]
+// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*base][base:1]]
 const MODEL_PROPERTIES_FORMAT_VERSION: &str = "0.1";
 
 /// The computed results by external application
@@ -33,7 +33,7 @@ pub struct ModelProperties {
 
 // display/parse
 
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*display/parse][display/parse:1]]
+// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*display/parse][display/parse:1]]
 impl ModelProperties {
     /// Parse mulitple entries of ModelProperties from string slice
     pub fn parse_all(output: &str) -> Result<Vec<ModelProperties>> {
@@ -247,7 +247,6 @@ impl ModelProperties {
         self.force_constants.as_ref()
     }
 
-    #[cfg(feature = "adhoc")]
     /// Set molecule structure.
     ///
     /// # Parameters
@@ -256,7 +255,7 @@ impl ModelProperties {
     ///
     /// * cell: three Lattice vectors array
     ///
-    /// * scaled: if input positions are in scaled coordinates
+    /// * scaled: indicates if input atom positions in scaled coordinates
     pub fn set_structure<A, C>(&mut self, atoms: A, cell: Option<C>, scaled: bool)
     where
         A: IntoIterator,
@@ -279,7 +278,7 @@ impl ModelProperties {
 
 // test
 
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*test][test:1]]
+// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*test][test:1]]
 #[test]
 fn test_model_parse_results() {
     use approx::*;
