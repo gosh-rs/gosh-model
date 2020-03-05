@@ -1,5 +1,3 @@
-// header
-
 // [[file:~/Workspace/Programming/gosh-rs/model/models.note::*header][header:1]]
 //! Represents an universal blackbox (external) model defined by user scripts
 //!
@@ -23,8 +21,6 @@
 //! ```
 // header:1 ends here
 
-// imports
-
 // [[file:~/Workspace/Programming/gosh-rs/model/models.note::*imports][imports:1]]
 use serde::Deserialize;
 
@@ -33,8 +29,6 @@ use crate::*;
 
 use gchemol::Molecule;
 // imports:1 ends here
-
-// base
 
 // [[file:~/Workspace/Programming/gosh-rs/model/models.note::*base][base:1]]
 #[derive(Deserialize, Debug)]
@@ -65,8 +59,6 @@ impl Default for BlackBox {
     }
 }
 // base:1 ends here
-
-// env
 
 // [[file:~/Workspace/Programming/gosh-rs/model/models.note::*env][env:1]]
 use dotenv;
@@ -126,8 +118,6 @@ impl BlackBox {
 }
 // env:1 ends here
 
-// call
-
 // [[file:~/Workspace/Programming/gosh-rs/model/models.note::*call][call:1]]
 use tempfile::{tempdir, tempdir_in, TempDir};
 
@@ -154,7 +144,8 @@ impl BlackBox {
 
         let tdir = tdir_opt.get_or_insert_with(|| {
             self.new_scratch_directory()
-                .with_context(|| format!("Failed to create scratch directory")).unwrap()
+                .with_context(|| format!("Failed to create scratch directory"))
+                .unwrap()
         });
 
         let ptdir = tdir.path();
@@ -164,54 +155,20 @@ impl BlackBox {
         debug!("submit cmdline: {}", cmdline);
 
         let cdir = std::env::current_dir()?;
-        let cmd_results = cmd!(&cmdline)
+        let stdout = cmd!(&cmdline)
             .dir(ptdir)
             .env("BBM_WRK_DIR", cdir)
             .stdin_bytes(input)
-            .read();
+            .read()
+            .context("bbm run script failure")?;
 
         // for re-using the scratch directory
         self.temp_dir = tdir_opt;
 
-        Ok(cmd_results?)
+        Ok(stdout)
     }
-
-    // // FIXME: adhoc hacking
-    // /// call with a runner for reaping child processes
-    // fn safe_call_(&mut self, input: &str) -> Result<String> {
-    //     debug!("run script file: {}", self.run_file.display());
-
-    //     // re-use the same scratch directory for multi-step calculation, e.g.
-    //     // optimization.
-    //     let mut tdir_opt = self.temp_dir.take();
-
-    //     let tdir = tdir_opt.get_or_insert_with(|| {
-    //         self.new_scratch_directory()
-    //             .with_context(|| format!("Failed to create scratch directory:\n"))
-    //             .unwrap()
-    //     });
-
-    //     let ptdir = tdir.path();
-    //     debug!("scratch dir: {}", ptdir.display());
-
-    //     let cmdline = format!("{}", self.run_file.display());
-    //     debug!("submit cmdline: {}", cmdline);
-
-    //     let runner = runners::local::Runner::new(&self.run_file);
-
-    //     let cdir = std::env::current_dir()?;
-    //     std::env::set_var("BBM_WRK_DIR", cdir);
-    //     let cmd_results = runners::local::run_adhoc_input_output(&runner, input, ptdir)?;
-
-    //     // for re-using the scratch directory
-    //     self.temp_dir = tdir_opt;
-
-    //     Ok(cmd_results)
-    // }
 }
 // call:1 ends here
-
-// pub
 
 // [[file:~/Workspace/Programming/gosh-rs/model/models.note::*pub][pub:1]]
 impl BlackBox {
@@ -250,8 +207,6 @@ impl BlackBox {
     }
 }
 // pub:1 ends here
-
-// pub/chemical model
 
 // [[file:~/Workspace/Programming/gosh-rs/model/models.note::*pub/chemical model][pub/chemical model:1]]
 use duct::cmd;
