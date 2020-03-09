@@ -10,9 +10,6 @@
 //! let dir = "/share/apps/mopac/sp";
 //! let bbm = BlackBox::from_dir(dir);
 //! 
-//! // use settings from current environment.
-//! let bbm = BlackBox::from_env();
-//! 
 //! // calculate one molecule
 //! let mp = bbm.compute(&mol)?;
 //! 
@@ -69,21 +66,14 @@ use std::path::{Path, PathBuf};
 fn enter_dir_with_env(dir: &Path) -> Result<()> {
     info!("read dotenv vars from {}", dir.display());
 
-    // change to directory
-    // env::set_current_dir(&dir)?;
-
     // read environment variables
     dotenv::from_path(&dir.join(".env")).ok();
+
     Ok(())
 }
 
 impl BlackBox {
-    /// Initialize from environment variables
-    ///
-    /// # Panic
-    ///
-    /// - Panic if the directory is inaccessible.
-    ///
+    /// Initialize from environment variables.
     fn from_dotenv(dir: &Path) -> Self {
         // read environment variables from .env config
         match enter_dir_with_env(dir) {
@@ -154,10 +144,15 @@ impl BlackBox {
         let cmdline = format!("{}", self.run_file.display());
         debug!("submit cmdline: {}", cmdline);
 
+        let tpl_dir = self
+            .tpl_file
+            .parent()
+            .ok_or(format_err!("bbm_tpl_file: invalid path: {:?}", self.tpl_file))?;
         let cdir = std::env::current_dir()?;
         let stdout = cmd!(&cmdline)
             .dir(ptdir)
-            .env("BBM_WRK_DIR", cdir)
+            .env("BBM_TPL_DIR", tpl_dir)
+            .env("BBM_JOB_DIR", cdir)
             .stdin_bytes(input)
             .read()
             .context("bbm run script failure")?;
