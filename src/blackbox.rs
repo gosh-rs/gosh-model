@@ -8,7 +8,7 @@
 //! 
 //! // initialize blackbox model from directory
 //! let dir = "/share/apps/mopac/sp";
-//! let bbm = BlackBox::from_dir(dir);
+//! let bbm = BlackBox::from_dir(dir)?;
 //! 
 //! // calculate one molecule
 //! let mp = bbm.compute(&mol)?;
@@ -62,26 +62,16 @@ use dotenv;
 use std::env;
 use std::path::{Path, PathBuf};
 
-/// Enter directory with environment variables from .env file
-fn enter_dir_with_env(dir: &Path) -> Result<()> {
-    info!("read dotenv vars from {}", dir.display());
-
-    // read environment variables
-    dotenv::from_path(&dir.join(".env")).ok();
-
-    Ok(())
-}
-
 impl BlackBox {
     /// Initialize from environment variables.
-    fn from_dotenv(dir: &Path) -> Self {
-        // read environment variables from .env config
-        match enter_dir_with_env(dir) {
-            Ok(_) => {}
-            Err(e) => {
-                warn!("no dotenv config found: {:?}", e);
-            }
-        }
+    fn from_dotenv(dir: &Path) -> Result<Self> {
+        // canonicalize the file paths
+        let dir = dir
+            .canonicalize()
+            .with_context(|| format!("invalid template directory: {:?}", dir))?;
+
+        // read environment variables from .env config if any
+        dotenv::from_path(&dir.join(".env")).ok();
 
         // construct from `BBM_*` environment variables
         for (key, value) in env::vars() {
@@ -90,12 +80,11 @@ impl BlackBox {
             }
         }
 
-        // canonicalize the file paths
         let mut bbm = BlackBox::from_env();
         bbm.run_file = dir.join(bbm.run_file);
         bbm.tpl_file = dir.join(bbm.tpl_file);
 
-        bbm
+        Ok(bbm)
     }
 
     /// Construct from environment variables
@@ -115,7 +104,7 @@ impl BlackBox {
     /// Return a temporary directory under `BBM_SCR_ROOT` for safe calculation.
     fn new_scratch_directory(&self) -> Result<TempDir> {
         if let Some(ref scr_root) = self.scr_dir {
-            info!("set scratch root directory as: {:?}", scr_root);
+            debug!("set scratch root directory as: {:?}", scr_root);
             Ok(tempdir_in(scr_root)?)
         } else {
             let tdir = tempdir()?;
@@ -126,7 +115,7 @@ impl BlackBox {
 
     /// Call external script
     fn safe_call(&mut self, input: &str) -> Result<String> {
-        debug!("run script file: {}", self.run_file.display());
+        debug!("calling script file: {:?}", self.run_file);
 
         // re-use the same scratch directory for multi-step calculation, e.g.
         // optimization.
@@ -137,28 +126,31 @@ impl BlackBox {
                 .with_context(|| format!("Failed to create scratch directory"))
                 .unwrap()
         });
-
         let ptdir = tdir.path();
-        debug!("scratch dir: {}", ptdir.display());
 
-        let cmdline = format!("{}", self.run_file.display());
-        debug!("submit cmdline: {}", cmdline);
+        info!("scratch dir: {}", ptdir.display());
 
         let tpl_dir = self
             .tpl_file
             .parent()
             .ok_or(format_err!("bbm_tpl_file: invalid path: {:?}", self.tpl_file))?;
+
+        info!("BBM_TPL_DIR: {:?}", tpl_dir);
         let cdir = std::env::current_dir()?;
-        let stdout = cmd!(&cmdline)
+        info!("BBM_JOB_DIR: {:?}", cdir);
+
+        let cmdline = format!("{}", self.run_file.display());
+        debug!("submit cmdline: {}", cmdline);
+        let cmd = cmd!(&cmdline)
             .dir(ptdir)
             .env("BBM_TPL_DIR", tpl_dir)
             .env("BBM_JOB_DIR", cdir)
-            .stdin_bytes(input)
-            .read()
-            .context("bbm run script failure")?;
+            .stdin_bytes(input);
 
         // for re-using the scratch directory
         self.temp_dir = tdir_opt;
+
+        let stdout = cmd.read().context("BBM calling script failed.")?;
 
         Ok(stdout)
     }
@@ -168,8 +160,8 @@ impl BlackBox {
 // [[file:~/Workspace/Programming/gosh-rs/model/models.note::*pub][pub:1]]
 impl BlackBox {
     /// Construct blackbox model under directory context.
-    pub fn from_dir<P: AsRef<Path>>(dir: P) -> Self {
-        Self::from_dotenv(dir.as_ref())
+    pub fn from_dir<P: AsRef<Path>>(dir: P) -> Result<Self> {
+        Self::from_dotenv(dir.as_ref()).context("Initialize BlackBox model failed.")
     }
 
     /// Render input using template
