@@ -103,14 +103,16 @@ use tempfile::{tempdir, tempdir_in, TempDir};
 impl BlackBox {
     /// Return a temporary directory under `BBM_SCR_ROOT` for safe calculation.
     fn new_scratch_directory(&self) -> Result<TempDir> {
-        if let Some(ref scr_root) = self.scr_dir {
+        let tdir = if let Some(ref scr_root) = self.scr_dir {
             debug!("set scratch root directory as: {:?}", scr_root);
-            Ok(tempdir_in(scr_root)?)
+            tempdir_in(scr_root)?
         } else {
             let tdir = tempdir()?;
             debug!("scratch root directory is not set, use the system default.");
-            Ok(tdir)
-        }
+            tdir
+        };
+        info!("BBM scratching directory: {:?}", tdir);
+        Ok(tdir)
     }
 
     /// Call external script
@@ -128,16 +130,16 @@ impl BlackBox {
         });
         let ptdir = tdir.path();
 
-        info!("scratch dir: {}", ptdir.display());
+        debug!("scratch dir: {}", ptdir.display());
 
         let tpl_dir = self
             .tpl_file
             .parent()
             .ok_or(format_err!("bbm_tpl_file: invalid path: {:?}", self.tpl_file))?;
 
-        info!("BBM_TPL_DIR: {:?}", tpl_dir);
+        debug!("BBM_TPL_DIR: {:?}", tpl_dir);
         let cdir = std::env::current_dir()?;
-        info!("BBM_JOB_DIR: {:?}", cdir);
+        debug!("BBM_JOB_DIR: {:?}", cdir);
 
         let cmdline = format!("{}", self.run_file.display());
         debug!("submit cmdline: {}", cmdline);
@@ -196,7 +198,7 @@ impl BlackBox {
 // pub:1 ends here
 
 // [[file:~/Workspace/Programming/gosh-rs/model/models.note::*pub/chemical model][pub/chemical model:1]]
-use duct::cmd;
+use gut::cli::duct::cmd;
 
 impl ChemicalModel for BlackBox {
     fn compute(&mut self, mol: &Molecule) -> Result<ModelProperties> {

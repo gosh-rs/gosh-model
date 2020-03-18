@@ -16,7 +16,7 @@ serde_json = "1.0"
 dotenv = "0.15"
 duct = "0.13"
 tempfile = "3.0"
-gosh-core = { version = ">=0.0.1" }
+gosh-core = { version = ">=0.0.1", features=["adhoc"] }
 # gosh-runner = { version = ">=0.0.5" }
 
 [dev-dependencies]
