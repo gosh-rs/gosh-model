@@ -104,7 +104,7 @@ impl BlackBox {
     /// Return a temporary directory under `BBM_SCR_ROOT` for safe calculation.
     fn new_scratch_directory(&self) -> Result<TempDir> {
         let tdir = if let Some(ref scr_root) = self.scr_dir {
-            debug!("set scratch root directory as: {:?}", scr_root);
+            trace!("set scratch root directory as: {:?}", scr_root);
             tempdir_in(scr_root)?
         } else {
             let tdir = tempdir()?;
@@ -117,7 +117,7 @@ impl BlackBox {
 
     /// Call external script
     fn safe_call(&mut self, input: &str) -> Result<String> {
-        debug!("calling script file: {:?}", self.run_file);
+        trace!("calling script file: {:?}", self.run_file);
 
         // re-use the same scratch directory for multi-step calculation, e.g.
         // optimization.
@@ -130,19 +130,19 @@ impl BlackBox {
         });
         let ptdir = tdir.path();
 
-        debug!("scratch dir: {}", ptdir.display());
+        trace!("scratch dir: {}", ptdir.display());
 
         let tpl_dir = self
             .tpl_file
             .parent()
             .ok_or(format_err!("bbm_tpl_file: invalid path: {:?}", self.tpl_file))?;
 
-        debug!("BBM_TPL_DIR: {:?}", tpl_dir);
+        trace!("BBM_TPL_DIR: {:?}", tpl_dir);
         let cdir = std::env::current_dir()?;
-        debug!("BBM_JOB_DIR: {:?}", cdir);
+        trace!("BBM_JOB_DIR: {:?}", cdir);
 
         let cmdline = format!("{}", self.run_file.display());
-        debug!("submit cmdline: {}", cmdline);
+        trace!("submit cmdline: {}", cmdline);
         let cmd = cmd!(&cmdline)
             .dir(ptdir)
             .env("BBM_TPL_DIR", tpl_dir)
