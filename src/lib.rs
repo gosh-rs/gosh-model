@@ -1,5 +1,3 @@
-// common
-
 // [[file:~/Workspace/Programming/gosh-rs/model/models.note::*common][common:1]]
 pub(crate) mod core {
     pub use gosh_core::*;
@@ -8,20 +6,16 @@ pub(crate) mod core {
 }
 // common:1 ends here
 
-// mods
-
 // [[file:~/Workspace/Programming/gosh-rs/model/models.note::*mods][mods:1]]
 mod model_properties;
 
-pub mod blackbox;
-pub mod lj;
+mod blackbox;
+mod lj;
 
 pub use crate::blackbox::BlackBox;
 pub use crate::lj::LennardJones;
 pub use crate::model_properties::*;
 // mods:1 ends here
-
-// chemical model
 
 // [[file:~/Workspace/Programming/gosh-rs/model/models.note::*chemical model][chemical model:1]]
 use crate::core::*;
