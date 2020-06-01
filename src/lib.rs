@@ -15,6 +15,7 @@ mod lj;
 pub use crate::blackbox::BlackBox;
 pub use crate::lj::LennardJones;
 pub use crate::model_properties::*;
+pub type BlackBoxModel = BlackBox;
 // mods:1 ends here
 
 // [[file:~/Workspace/Programming/gosh-rs/model/models.note::*chemical model][chemical model:1]]
