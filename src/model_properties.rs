@@ -1,5 +1,3 @@
-// imports
-
 // [[file:~/Workspace/Programming/gosh-rs/model/models.note::*imports][imports:1]]
 use std::collections::HashMap;
 use std::fmt;
@@ -12,8 +10,6 @@ use gchemol::Atom;
 use gchemol::Lattice;
 use gchemol::Molecule;
 // imports:1 ends here
-
-// base
 
 // [[file:~/Workspace/Programming/gosh-rs/model/models.note::*base][base:1]]
 const MODEL_PROPERTIES_FORMAT_VERSION: &str = "0.1";
@@ -31,8 +27,6 @@ pub struct ModelProperties {
 }
 // base:1 ends here
 
-// display/parse
-
 // [[file:~/Workspace/Programming/gosh-rs/model/models.note::*display/parse][display/parse:1]]
 impl ModelProperties {
     /// Parse mulitple entries of ModelProperties from string slice
@@ -49,10 +43,7 @@ impl ModelProperties {
 
 impl fmt::Display for ModelProperties {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut txt = format!(
-            "@model_properties_format_version {}\n",
-            MODEL_PROPERTIES_FORMAT_VERSION
-        );
+        let mut txt = format!("@model_properties_format_version {}\n", MODEL_PROPERTIES_FORMAT_VERSION);
 
         // structure
         if let Some(mol) = &self.molecule {
@@ -73,7 +64,6 @@ impl fmt::Display for ModelProperties {
                 txt.push_str(&line);
             }
         }
-
         // dipole moments
         if let Some(d) = &self.dipole {
             txt.push_str("@dipole\n");
@@ -275,8 +265,6 @@ impl ModelProperties {
         self.molecule = Some(mol);
     }
 }
-
-// test
 
 // [[file:~/Workspace/Programming/gosh-rs/model/models.note::*test][test:1]]
 #[test]
