@@ -1,4 +1,4 @@
-// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*header][header:1]]
+// [[file:../models.note::*header][header:1]]
 //! Represents an universal blackbox (external) model defined by user scripts
 //!
 //! # Usage
@@ -18,18 +18,16 @@
 //! ```
 // header:1 ends here
 
-// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*imports][imports:1]]
-use serde::Deserialize;
+// [[file:../models.note::*imports][imports:1]]
+use std::path::{Path, PathBuf};
 
 use crate::core::*;
 use crate::*;
-
 use gchemol::Molecule;
 // imports:1 ends here
 
-// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*base][base:1]]
-#[derive(Deserialize, Debug)]
-#[serde(default)]
+// [[file:../models.note::*base][base:1]]
+#[derive(Debug)]
 pub struct BlackBox {
     /// Set the run script file for calculation.
     run_file: PathBuf,
@@ -40,30 +38,13 @@ pub struct BlackBox {
     /// Set the root directory for scratch files.
     scr_dir: Option<PathBuf>,
 
-    // for internal uses
-    #[serde(skip)]
+    /// unique temporary working directory
     temp_dir: Option<TempDir>,
-}
-
-impl Default for BlackBox {
-    fn default() -> Self {
-        Self {
-            run_file: "submit.sh".into(),
-            tpl_file: "input.hbs".into(),
-            scr_dir: None,
-            temp_dir: None,
-        }
-    }
 }
 // base:1 ends here
 
-// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*env][env:1]]
-use dotenv;
-use std::env;
-use std::path::{Path, PathBuf};
-
+// [[file:../models.note::*env][env:1]]
 impl BlackBox {
-    /// Initialize from environment variables.
     fn from_dotenv(dir: &Path) -> Result<Self> {
         // canonicalize the file paths
         let dir = dir
@@ -71,33 +52,34 @@ impl BlackBox {
             .with_context(|| format!("invalid template directory: {:?}", dir))?;
 
         // read environment variables from .env config if any
-        dotenv::from_path(&dir.join(".env")).ok();
-
-        // construct from `BBM_*` environment variables
-        for (key, value) in env::vars() {
-            if key.starts_with("BBM") {
-                info!("{}: {}", key, value);
-            }
+        let mut envfile = envfile::EnvFile::new(dir.join(".env")).unwrap();
+        for (key, value) in &envfile.store {
+            info!("found env var from {:?}: {}={}", &envfile.path, key, value);
         }
 
-        let mut bbm = BlackBox::from_env();
-        bbm.run_file = dir.join(bbm.run_file);
-        bbm.tpl_file = dir.join(bbm.tpl_file);
-
+        let run_file = envfile.get("BBM_RUN_FILE").unwrap_or("submit.sh");
+        let tpl_file = envfile.get("BBM_TPL_FILE").unwrap_or("input.hbs");
+        let bbm = BlackBox {
+            run_file: dir.join(run_file),
+            tpl_file: dir.join(tpl_file),
+            scr_dir: envfile.get("BBM_SCR_DIR").map(|x| x.into()),
+            temp_dir: None,
+        };
         Ok(bbm)
     }
 
-    /// Construct from environment variables
-    fn from_env() -> Self {
-        match envy::prefixed("BBM_").from_env::<BlackBox>() {
-            Ok(bbm) => bbm,
-            Err(error) => panic!("{:?}", error),
-        }
-    }
+    // Construct from environment variables
+    // 2020-09-05: it is dangerous if we have multiple BBMs in the sample process
+    // fn from_env() -> Self {
+    //     match envy::prefixed("BBM_").from_env::<BlackBox>() {
+    //         Ok(bbm) => bbm,
+    //         Err(error) => panic!("{:?}", error),
+    //     }
+    // }
 }
 // env:1 ends here
 
-// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*call][call:1]]
+// [[file:../models.note::*call][call:1]]
 use tempfile::{tempdir, tempdir_in, TempDir};
 
 impl BlackBox {
@@ -159,7 +141,7 @@ impl BlackBox {
 }
 // call:1 ends here
 
-// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*pub][pub:1]]
+// [[file:../models.note::*pub][pub:1]]
 impl BlackBox {
     /// Construct blackbox model under directory context.
     pub fn from_dir<P: AsRef<Path>>(dir: P) -> Result<Self> {
@@ -197,7 +179,7 @@ impl BlackBox {
 }
 // pub:1 ends here
 
-// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*pub/chemical model][pub/chemical model:1]]
+// [[file:../models.note::*pub/chemical model][pub/chemical model:1]]
 use gut::cli::duct::cmd;
 
 impl ChemicalModel for BlackBox {
@@ -242,3 +224,21 @@ impl ChemicalModel for BlackBox {
     }
 }
 // pub/chemical model:1 ends here
+
+// [[file:../models.note::*test][test:1]]
+#[test]
+fn test_bbm() -> Result<()> {
+    // setup two BBMs
+    let bbm_vasp = "./tests/files/vasp-sp";
+    let bbm_siesta = "./tests/files/siesta-sp";
+    let vasp = BlackBoxModel::from_dir(bbm_vasp)?;
+    let siesta = BlackBoxModel::from_dir(bbm_siesta)?;
+
+    // VASP uses input.tera as the input template
+    assert!(vasp.tpl_file.ends_with("input.tera"));
+    // VASP uses input.hbs as the input template
+    assert!(siesta.tpl_file.ends_with("input.hbs"));
+
+    Ok(())
+}
+// test:1 ends here

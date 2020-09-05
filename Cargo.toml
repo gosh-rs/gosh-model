@@ -1,4 +1,4 @@
-# [[file:~/Workspace/Programming/gosh-rs/model/models.note::*cargo][cargo:1]]
+# [[file:models.note::*cargo][cargo:1]]
 [package]
 name = "gosh-model"
 version = "0.0.11"
@@ -13,7 +13,7 @@ license = "MIT OR Apache-2.0"
 serde = "1.0"
 envy = "0.4"
 serde_json = "1.0"
-dotenv = "0.15"
+envfile = "0.2"
 tempfile = "3.0"
 gosh-core = { version = ">=0.0.1", features=["adhoc"] }
 # gosh-runner = { version = ">=0.0.5" }
