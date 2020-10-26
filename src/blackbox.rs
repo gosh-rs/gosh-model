@@ -1,6 +1,4 @@
-// header
-
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*header][header:1]]
+// [[file:../models.note::*header][header:1]]
 //! Represents an universal blackbox (external) model defined by user scripts
 //!
 //! # Usage
@@ -10,10 +8,7 @@
 //! 
 //! // initialize blackbox model from directory
 //! let dir = "/share/apps/mopac/sp";
-//! let bbm = BlackBox::from_dir(dir);
-//! 
-//! // use settings from current environment.
-//! let bbm = BlackBox::from_env();
+//! let bbm = BlackBox::from_dir(dir)?;
 //! 
 //! // calculate one molecule
 //! let mp = bbm.compute(&mol)?;
@@ -23,22 +18,16 @@
 //! ```
 // header:1 ends here
 
-// imports
-
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*imports][imports:1]]
-use serde::Deserialize;
+// [[file:../models.note::*imports][imports:1]]
+use std::path::{Path, PathBuf};
 
 use crate::core::*;
 use crate::*;
-
 use gchemol::Molecule;
 // imports:1 ends here
 
-// base
-
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*base][base:1]]
-#[derive(Deserialize, Debug)]
-#[serde(default)]
+// [[file:../models.note::*base][base:1]]
+#[derive(Debug)]
 pub struct BlackBox {
     /// Set the run script file for calculation.
     run_file: PathBuf,
@@ -49,104 +38,68 @@ pub struct BlackBox {
     /// Set the root directory for scratch files.
     scr_dir: Option<PathBuf>,
 
-    // for internal uses
-    #[serde(skip)]
+    /// unique temporary working directory
     temp_dir: Option<TempDir>,
-}
-
-impl Default for BlackBox {
-    fn default() -> Self {
-        Self {
-            run_file: "submit.sh".into(),
-            tpl_file: "input.hbs".into(),
-            scr_dir: None,
-            temp_dir: None,
-        }
-    }
 }
 // base:1 ends here
 
-// env
-
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*env][env:1]]
-use dotenv;
-use std::env;
-use std::path::{Path, PathBuf};
-
-/// Enter directory with environment variables from .env file
-fn enter_dir_with_env(dir: &Path) -> Result<()> {
-    info!("read dotenv vars from {}", dir.display());
-
-    // change to directory
-    // env::set_current_dir(&dir)?;
-
-    // read environment variables
-    dotenv::from_path(&dir.join(".env")).ok();
-    Ok(())
-}
-
+// [[file:../models.note::*env][env:1]]
 impl BlackBox {
-    /// Initialize from environment variables
-    ///
-    /// # Panic
-    ///
-    /// - Panic if the directory is inaccessible.
-    ///
-    fn from_dotenv(dir: &Path) -> Self {
-        // read environment variables from .env config
-        match enter_dir_with_env(dir) {
-            Ok(_) => {}
-            Err(e) => {
-                warn!("no dotenv config found: {:?}", e);
-            }
-        }
-
-        // construct from `BBM_*` environment variables
-        for (key, value) in env::vars() {
-            if key.starts_with("BBM") {
-                info!("{}: {}", key, value);
-            }
-        }
-
+    fn from_dotenv(dir: &Path) -> Result<Self> {
         // canonicalize the file paths
-        let mut bbm = BlackBox::from_env();
-        bbm.run_file = dir.join(bbm.run_file);
-        bbm.tpl_file = dir.join(bbm.tpl_file);
+        let dir = dir
+            .canonicalize()
+            .with_context(|| format!("invalid template directory: {:?}", dir))?;
 
-        bbm
-    }
-
-    /// Construct from environment variables
-    fn from_env() -> Self {
-        match envy::prefixed("BBM_").from_env::<BlackBox>() {
-            Ok(bbm) => bbm,
-            Err(error) => panic!("{:?}", error),
+        // read environment variables from .env config if any
+        let mut envfile = envfile::EnvFile::new(dir.join(".env")).unwrap();
+        for (key, value) in &envfile.store {
+            info!("found env var from {:?}: {}={}", &envfile.path, key, value);
         }
+
+        let run_file = envfile.get("BBM_RUN_FILE").unwrap_or("submit.sh");
+        let tpl_file = envfile.get("BBM_TPL_FILE").unwrap_or("input.hbs");
+        let bbm = BlackBox {
+            run_file: dir.join(run_file),
+            tpl_file: dir.join(tpl_file),
+            scr_dir: envfile.get("BBM_SCR_DIR").map(|x| x.into()),
+            temp_dir: None,
+        };
+        Ok(bbm)
     }
+
+    // Construct from environment variables
+    // 2020-09-05: it is dangerous if we have multiple BBMs in the sample process
+    // fn from_env() -> Self {
+    //     match envy::prefixed("BBM_").from_env::<BlackBox>() {
+    //         Ok(bbm) => bbm,
+    //         Err(error) => panic!("{:?}", error),
+    //     }
+    // }
 }
 // env:1 ends here
 
-// call
-
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*call][call:1]]
+// [[file:../models.note::*call][call:1]]
 use tempfile::{tempdir, tempdir_in, TempDir};
 
 impl BlackBox {
     /// Return a temporary directory under `BBM_SCR_ROOT` for safe calculation.
     fn new_scratch_directory(&self) -> Result<TempDir> {
-        if let Some(ref scr_root) = self.scr_dir {
-            info!("set scratch root directory as: {:?}", scr_root);
-            Ok(tempdir_in(scr_root)?)
+        let tdir = if let Some(ref scr_root) = self.scr_dir {
+            trace!("set scratch root directory as: {:?}", scr_root);
+            tempdir_in(scr_root)?
         } else {
             let tdir = tempdir()?;
             debug!("scratch root directory is not set, use the system default.");
-            Ok(tdir)
-        }
+            tdir
+        };
+        info!("BBM scratching directory: {:?}", tdir);
+        Ok(tdir)
     }
 
     /// Call external script
     fn safe_call(&mut self, input: &str) -> Result<String> {
-        debug!("run script file: {}", self.run_file.display());
+        trace!("calling script file: {:?}", self.run_file);
 
         // re-use the same scratch directory for multi-step calculation, e.g.
         // optimization.
@@ -154,83 +107,51 @@ impl BlackBox {
 
         let tdir = tdir_opt.get_or_insert_with(|| {
             self.new_scratch_directory()
-                .with_context(|e| format!("Failed to create scratch directory:\n {:?}", e))
+                .with_context(|| format!("Failed to create scratch directory"))
                 .unwrap()
         });
-
         let ptdir = tdir.path();
-        debug!("scratch dir: {}", ptdir.display());
+
+        trace!("scratch dir: {}", ptdir.display());
+
+        let tpl_dir = self
+            .tpl_file
+            .parent()
+            .ok_or(format_err!("bbm_tpl_file: invalid path: {:?}", self.tpl_file))?;
+
+        trace!("BBM_TPL_DIR: {:?}", tpl_dir);
+        let cdir = std::env::current_dir()?;
+        trace!("BBM_JOB_DIR: {:?}", cdir);
 
         let cmdline = format!("{}", self.run_file.display());
-        debug!("submit cmdline: {}", cmdline);
-
-        let cdir = std::env::current_dir()?;
-        let cmd_results = cmd!(&cmdline)
+        trace!("submit cmdline: {}", cmdline);
+        let cmd = cmd!(&cmdline)
             .dir(ptdir)
-            .env("BBM_WRK_DIR", cdir)
-            .stdin_bytes(input)
-            .read();
+            .env("BBM_TPL_DIR", tpl_dir)
+            .env("BBM_JOB_DIR", cdir)
+            .stdin_bytes(input);
 
         // for re-using the scratch directory
         self.temp_dir = tdir_opt;
 
-        Ok(cmd_results?)
+        let stdout = cmd.read().context("BBM calling script failed.")?;
+
+        Ok(stdout)
     }
-
-    // // FIXME: adhoc hacking
-    // /// call with a runner for reaping child processes
-    // fn safe_call_(&mut self, input: &str) -> Result<String> {
-    //     debug!("run script file: {}", self.run_file.display());
-
-    //     // re-use the same scratch directory for multi-step calculation, e.g.
-    //     // optimization.
-    //     let mut tdir_opt = self.temp_dir.take();
-
-    //     let tdir = tdir_opt.get_or_insert_with(|| {
-    //         self.new_scratch_directory()
-    //             .with_context(|e| format!("Failed to create scratch directory:\n {:?}", e))
-    //             .unwrap()
-    //     });
-
-    //     let ptdir = tdir.path();
-    //     debug!("scratch dir: {}", ptdir.display());
-
-    //     let cmdline = format!("{}", self.run_file.display());
-    //     debug!("submit cmdline: {}", cmdline);
-
-    //     let runner = runners::local::Runner::new(&self.run_file);
-
-    //     let cdir = std::env::current_dir()?;
-    //     std::env::set_var("BBM_WRK_DIR", cdir);
-    //     let cmd_results = runners::local::run_adhoc_input_output(&runner, input, ptdir)?;
-
-    //     // for re-using the scratch directory
-    //     self.temp_dir = tdir_opt;
-
-    //     Ok(cmd_results)
-    // }
 }
 // call:1 ends here
 
-// pub
-
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*pub][pub:1]]
+// [[file:../models.note::*pub][pub:1]]
 impl BlackBox {
     /// Construct blackbox model under directory context.
-    pub fn from_dir<P: AsRef<Path>>(dir: P) -> Self {
-        Self::from_dotenv(dir.as_ref())
+    pub fn from_dir<P: AsRef<Path>>(dir: P) -> Result<Self> {
+        Self::from_dotenv(dir.as_ref()).context("Initialize BlackBox model failed.")
     }
 
     /// Render input using template
     pub fn render_input(&self, mol: &Molecule) -> Result<String> {
-        // 1. load input template
-        let template = gchemol::io::read_file(&self.tpl_file).map_err(|e| {
-            error!("failed to load template");
-            e
-        })?;
-
-        // 2. render input text with the template
-        let txt = mol.render_with(&template)?;
+        // render input text with external template file
+        let txt = mol.render_with(&self.tpl_file)?;
 
         Ok(txt)
     }
@@ -258,21 +179,30 @@ impl BlackBox {
 }
 // pub:1 ends here
 
-// pub/chemical model
-
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*pub/chemical model][pub/chemical model:1]]
-use duct::cmd;
+// [[file:../models.note::*pub/chemical model][pub/chemical model:1]]
+use gut::cli::duct::cmd;
 
 impl ChemicalModel for BlackBox {
     fn compute(&mut self, mol: &Molecule) -> Result<ModelProperties> {
         // 1. render input text with the template
-        let txt = self.render_input(&mol)?;
+        let txt = self.render_input(&mol).context("render input")?;
 
         // 2. call external engine
-        let output = self.safe_call(&txt)?;
+        let output = self.safe_call(&txt).context("call external model")?;
 
         // 3. collect model properties
-        let p: ModelProperties = output.parse()?;
+        let p: ModelProperties = output.parse().context("parse results")?;
+
+        // sanity checking: the associated structure should have the same number
+        // of atoms
+        debug_assert!({
+            let n = mol.natoms();
+            if let Some(pmol) = p.get_molecule() {
+                pmol.natoms() == n
+            } else {
+                true
+            }
+        });
 
         Ok(p)
     }
@@ -287,8 +217,28 @@ impl ChemicalModel for BlackBox {
         // 3. collect model properties
         let all = ModelProperties::parse_all(&output)?;
 
+        // one-to-one mapping
+        debug_assert_eq!(mols.len(), all.len());
 
         Ok(all)
     }
 }
 // pub/chemical model:1 ends here
+
+// [[file:../models.note::*test][test:1]]
+#[test]
+fn test_bbm() -> Result<()> {
+    // setup two BBMs
+    let bbm_vasp = "./tests/files/vasp-sp";
+    let bbm_siesta = "./tests/files/siesta-sp";
+    let vasp = BlackBoxModel::from_dir(bbm_vasp)?;
+    let siesta = BlackBoxModel::from_dir(bbm_siesta)?;
+
+    // VASP uses input.tera as the input template
+    assert!(vasp.tpl_file.ends_with("input.tera"));
+    // VASP uses input.hbs as the input template
+    assert!(siesta.tpl_file.ends_with("input.hbs"));
+
+    Ok(())
+}
+// test:1 ends here

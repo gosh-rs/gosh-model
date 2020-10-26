@@ -1,21 +1,22 @@
-# cargo
-
-# [[file:~/Workspace/Programming/gosh-rs/models/models.note::*cargo][cargo:1]]
+# [[file:models.note::*cargo][cargo:1]]
 [package]
-name = "gosh-models"
-version = "0.0.7"
+name = "gosh-model"
+version = "0.0.11"
 edition = "2018"
 authors = ["Wenping Guo <ybyygu@gmail.com>"]
+description = "Chemical model for gosh"
+homepage = "https://github.com/gosh-rs/gosh-model"
+repository = "https://github.com/gosh-rs/gosh-model"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 serde = "1.0"
 envy = "0.4"
 serde_json = "1.0"
-dotenv = "0.13"
-duct = "0.13"
+envfile = "0.2"
 tempfile = "3.0"
-gosh-core = { git = "https://github.com/gosh-rs/gosh-core.git" }
-# gosh-core = { path = "../core" }
+gosh-core = { version = ">=0.0.1", features=["adhoc"] }
+# gosh-runner = { version = ">=0.0.5" }
 
 [dev-dependencies]
 approx = "0.3"

@@ -1,6 +1,4 @@
-// imports
-
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*imports][imports:1]]
+// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*imports][imports:1]]
 use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
@@ -8,12 +6,12 @@ use std::str::FromStr;
 use crate::core::*;
 
 use gchemol::prelude::*;
+use gchemol::Atom;
+use gchemol::Lattice;
 use gchemol::Molecule;
 // imports:1 ends here
 
-// base
-
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*base][base:1]]
+// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*base][base:1]]
 const MODEL_PROPERTIES_FORMAT_VERSION: &str = "0.1";
 
 /// The computed results by external application
@@ -29,9 +27,7 @@ pub struct ModelProperties {
 }
 // base:1 ends here
 
-// display/parse
-
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*display/parse][display/parse:1]]
+// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*display/parse][display/parse:1]]
 impl ModelProperties {
     /// Parse mulitple entries of ModelProperties from string slice
     pub fn parse_all(output: &str) -> Result<Vec<ModelProperties>> {
@@ -47,10 +43,7 @@ impl ModelProperties {
 
 impl fmt::Display for ModelProperties {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut txt = format!(
-            "@model_properties_format_version {}\n",
-            MODEL_PROPERTIES_FORMAT_VERSION
-        );
+        let mut txt = format!("@model_properties_format_version {}\n", MODEL_PROPERTIES_FORMAT_VERSION);
 
         // structure
         if let Some(mol) = &self.molecule {
@@ -71,7 +64,6 @@ impl fmt::Display for ModelProperties {
                 txt.push_str(&line);
             }
         }
-
         // dipole moments
         if let Some(d) = &self.dipole {
             txt.push_str("@dipole\n");
@@ -84,7 +76,7 @@ impl fmt::Display for ModelProperties {
 }
 
 impl FromStr for ModelProperties {
-    type Err = guts::failure::Error;
+    type Err = gut::prelude::Error;
 
     fn from_str(s: &str) -> Result<Self> {
         let all = parse_model_results(s)?;
@@ -117,7 +109,8 @@ fn parse_model_results_single(part: &[&str]) -> Result<ModelProperties> {
 
     // parse record values
     if records.len() < 1 {
-        warn!("collected no results! Please check if the stream is clean.");
+        warn!("Collected no results. Please check if the stream is clean!");
+        dbg!(part);
     }
 
     let mut results = ModelProperties::default();
@@ -146,7 +139,7 @@ fn parse_model_results_single(part: &[&str]) -> Result<ModelProperties> {
             "@structure" => {
                 let mut s = lines.join("\n");
                 s.push_str("\n\n");
-                let mol = Molecule::parse_from(s, "text/pxyz")?;
+                let mol = Molecule::from_str(&s, "text/pxyz")?;
                 results.molecule = Some(mol);
             }
             "@dipole" => {
@@ -193,9 +186,6 @@ fn parse_model_results(stream: &str) -> Result<Vec<ModelProperties>> {
     Ok(all_results)
 }
 // display/parse:1 ends here
-
-use gchemol::Atom;
-use gchemol::Lattice;
 
 impl ModelProperties {
     /// Set item energy.
@@ -248,7 +238,6 @@ impl ModelProperties {
         self.force_constants.as_ref()
     }
 
-    #[cfg(feature = "adhoc")]
     /// Set molecule structure.
     ///
     /// # Parameters
@@ -257,22 +246,20 @@ impl ModelProperties {
     ///
     /// * cell: three Lattice vectors array
     ///
-    /// * scaled: if input positions are in scaled coordinates
+    /// * scaled: indicates if input atom positions in scaled coordinates
     pub fn set_structure<A, C>(&mut self, atoms: A, cell: Option<C>, scaled: bool)
     where
         A: IntoIterator,
         A::Item: Into<Atom>,
         C: Into<[[f64; 3]; 3]>,
     {
-        let mut mol = Molecule::new("mp");
-        mol.add_atoms_from(atoms);
+        let mut mol = Molecule::from_atoms(atoms);
 
-        if let Some(lat) = cell.map(|x| Lattice::new(x)) {
+        if let Some(lat) = cell.map(|x| Lattice::new(x.into())) {
             mol.set_lattice(lat);
             if scaled {
-                let positions = mol.positions();
-                mol.set_scaled_positions(&positions).unwrap();
-                let positions = mol.positions();
+                let positions: Vec<_> = mol.positions().collect();
+                mol.set_scaled_positions(positions);
             }
         }
 
@@ -280,9 +267,7 @@ impl ModelProperties {
     }
 }
 
-// test
-
-// [[file:~/Workspace/Programming/gosh-rs/models/models.note::*test][test:1]]
+// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*test][test:1]]
 #[test]
 fn test_model_parse_results() {
     use approx::*;

@@ -1,0 +1,89 @@
+# default input parameters for siesta calculations
+#PAO.BasisType           split       # split or splitgauss
+#PAO.BasisSize           DZP         # basis set
+PAO.SplitTailNorm       .true.      # Required for psml as noted in release note (default: false)
+#XC.functional           GGA         # Exchange-correlation functional type
+#XC.authors              PBE         # Particular parametrization of xc func
+SpinPolarized           .false.     # Spin unpolarized calculation
+
+# DFT, Grid
+MeshCutoff              300. Ry     # Equivalent planewave cutoff for the grid
+MaxSCFIterations        200         # Maximum allowed number of SCF iterations per electroinic step
+SCFMustConverge         .false.      # continue to opt if fail to converge; Default value: .false.
+
+# Kpoints
+#
+# Modify kgrid according to the structure
+# for zeolite we use gamma point only
+#KgridCutoff             0.0 bohr
+%block kgridMonkhorstPack
+# NOTE: the final . is important
+2 0 0 0.
+0 2 0 0.
+0 0 1 0.
+%endblock kgridMonkhorstPack
+
+ElectronicTemperature   500 K       # Temp. for Fermi smearing, default is 300 K
+#SolutionMethod          diagon      # diagon is more robust; ELSI is more efficient for larger system
+# Parallelization over k-points the ELSI interface with the ELPA solver, only works for SIESTA compiled with ELSI enabled.
+# For performance gains, see Fig 7 in doi: 10.1063/5.0005077
+Solution.Method         ELSI
+ELSI.Solver             ELPA
+ELSI.ELPA.NSinglePrecision 200      # enable single precision mode, which could substantially save in CPU time
+DM.Normalization.Tolerance 0.001    # (To avoid too stringent an intermediate check)
+
+# SCF loop
+#
+SCF.DM.Tolerance        0.0008      # Default value: 10^−4
+# SCF parameters for some difficult convergence cases
+# see manual for details
+%block SCF.Mixers
+ init
+ final
+%endblock
+
+%block SCF.Mixer.init
+ method pulay
+ weight 0.05
+ history 30
+ #restart 10
+ restart.p 0.05
+ restart.save 10
+ # Switch when the relative residual goes below 2% or 20 cycles reached
+ iterations 20
+ next final
+ next.p 0.02
+%endblock
+
+# increasing the weight and decreasing the history steps
+%block SCF.Mixer.final
+ method pulay
+ weight 0.1
+ history 20
+ restart 30
+%endblock
+
+# Output options
+WriteKpoints            .false.
+WriteEigenvalues        .false.
+WriteKbands             .false.
+WriteBands              .false.
+WriteMDhistory          .true.
+WriteForces             .true.       # writes the atomic forces to the output file at every step
+WriteCoorXmol           .true.       # save final structure in xyz format
+WriteCoorCerius         .true.       # save in .xtl format for importing in material studio
+WriteMDXmol             .true.       # check .ani file for trajectory
+
+# Options for saving/reading information
+DM.UseSaveDM            .true.       # read initial guess; Default value: .false.
+MD.UseSaveXV            .false.      # Use stored positions and velocities
+MD.UseSaveCG            .false.      # Use stored positions and velocities
+
+# Molecular dynamics and geometry relaxations
+MD.TypeOfRun            cg          # Type of dynamics: CG, Broyden, FIRE or MD
+MD.VariableCell         .false.
+MD.Steps                0           # single point (0) or opt
+#MD.NumCGsteps          500         # deprecated in favor of MD.Steps
+MD.MaxForceTol          0.04 ev/Ang # default value: 0.04 eV/Ang. set ftol to 0 to make sure SIESTA always write final force.
+MD.MaxDispl             0.2 Bohr    # Default value: 0.2 Bohr
+
