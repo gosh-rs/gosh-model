@@ -40,6 +40,9 @@ pub struct BlackBox {
 
     /// unique temporary working directory
     temp_dir: Option<TempDir>,
+
+    /// Record the number of potential evalulations.
+    ncalls: usize,
 }
 // base:1 ends here
 
@@ -64,6 +67,7 @@ impl BlackBox {
             tpl_file: dir.join(tpl_file),
             scr_dir: envfile.get("BBM_SCR_DIR").map(|x| x.into()),
             temp_dir: None,
+            ncalls: 0,
         };
         Ok(bbm)
     }
@@ -136,6 +140,8 @@ impl BlackBox {
 
         let stdout = cmd.read().context("BBM calling script failed.")?;
 
+        self.ncalls += 1;
+
         Ok(stdout)
     }
 }
@@ -167,7 +173,7 @@ impl BlackBox {
         Ok(txt)
     }
 
-    // keep scratch files for user inspection of failure.
+    /// keep scratch files for user inspection of failure.
     pub fn keep_scratch_files(self) {
         if let Some(tdir) = self.temp_dir {
             let path = tdir.into_path();
@@ -175,6 +181,11 @@ impl BlackBox {
         } else {
             warn!("No temp dir found.");
         }
+    }
+
+    /// Return the number of potentail evaluations
+    pub fn number_of_evaluations(&self) -> usize {
+        self.ncalls
     }
 }
 // pub:1 ends here
