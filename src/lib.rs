@@ -1,4 +1,4 @@
-// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*common][common:1]]
+// [[file:../models.note::*common][common:1]]
 pub(crate) mod core {
     pub use gosh_core::*;
 
@@ -6,19 +6,22 @@ pub(crate) mod core {
 }
 // common:1 ends here
 
-// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*mods][mods:1]]
+// [[file:../models.note::*mods][mods:1]]
 mod model_properties;
 
 mod blackbox;
 mod lj;
 
-pub use crate::blackbox::BlackBox;
+// FIXME: to be removed
+mod task;
+mod vasp;
+
+pub use crate::blackbox::BlackBoxModel;
 pub use crate::lj::LennardJones;
 pub use crate::model_properties::*;
-pub type BlackBoxModel = BlackBox;
 // mods:1 ends here
 
-// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*chemical model][chemical model:1]]
+// [[file:../models.note::*chemical model][chemical model:1]]
 use crate::core::*;
 
 use gchemol::prelude::*;
