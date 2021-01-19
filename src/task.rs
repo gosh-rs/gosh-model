@@ -22,16 +22,18 @@ pub(crate) struct Task {
     child: Child,
     stream0: ChildStdin,
     stream1: std::io::Lines<BufReader<ChildStdout>>,
+    wrk_dir: PathBuf,
 }
 
 impl Task {
-    pub fn new(mut child: Child) -> Self {
+    pub fn new(mut child: Child, wrk_dir: &Path) -> Self {
         let stream0 = child.stdin.take().unwrap();
         let stream1 = child.stdout.take().unwrap();
         Self {
+            child,
             stream0,
             stream1: BufReader::new(stream1).lines(),
-            child,
+            wrk_dir: wrk_dir.to_owned(),
         }
     }
 }
@@ -40,9 +42,19 @@ impl Task {
 // [[file:../models.note::*stop][stop:1]]
 impl Drop for Task {
     fn drop(&mut self) {
-        // if let Err(msg) = crate::vasp::write_stopcar() {
-        //     eprintln!("Failed to stop vasp server: {:?}", msg);
-        // }
+        info!("Force to kill child process: {}", self.child.id());
+        if let Err(err) = self.child.kill() {
+            dbg!(err);
+        }
+        std::thread::sleep(std::time::Duration::from_secs(2));
+        match self.child.try_wait() {
+            Ok(Some(code)) => {
+                info!("Done");
+            }
+            other => {
+                dbg!(other);
+            }
+        }
     }
 }
 // stop:1 ends here

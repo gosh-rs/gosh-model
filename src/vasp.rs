@@ -170,22 +170,11 @@ fn test_poscar_positions() -> Result<()> {
 
     Ok(())
 }
-
-// pub fn get_scaled_positions() -> Result<String> {
-//     let poscar: &Path = "POSCAR".as_ref();
-//     let s = if poscar.exists() {
-//         String::new()
-//     } else {
-//         get_scaled_positions_from_poscar(poscar)?
-//     };
-
-//     Ok(s)
-// }
 // poscar:1 ends here
 
 // [[file:../models.note::*stopcar][stopcar:1]]
-pub(crate) fn write_stopcar() -> Result<()> {
-    gut::fs::write_to_file("STOPCAR", "LABORT = .TRUE.\n").context("write STOPCAR")?;
+fn write_stopcar(dir: &Path) -> Result<()> {
+    gut::fs::write_to_file(dir.join("STOPCAR"), "LABORT = .TRUE.\n").context("write STOPCAR")?;
 
     Ok(())
 }

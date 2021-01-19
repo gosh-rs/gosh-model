@@ -8,7 +8,7 @@
 //! 
 //! // initialize blackbox model from directory
 //! let dir = "/share/apps/mopac/sp";
-//! let bbm = BlackBox::from_dir(dir)?;
+//! let bbm = BlackBoxModel::from_dir(dir)?;
 //! 
 //! // calculate one molecule
 //! let mp = bbm.compute(&mol)?;
@@ -44,10 +44,12 @@ pub struct BlackBoxModel {
     /// Job starting directory
     job_dir: Option<PathBuf>,
 
+    // the order is matters
+    // https://stackoverflow.com/questions/41053542/forcing-the-order-in-which-struct-fields-are-dropped
+    task: Option<crate::task::Task>,
+
     /// unique temporary working directory
     temp_dir: Option<TempDir>,
-
-    task: Option<crate::task::Task>,
 
     /// Record the number of potential evalulations.
     ncalls: usize,
@@ -74,7 +76,7 @@ mod env {
     }
 
     impl BlackBoxModel {
-        /// 生成临时目录, 生成执行脚本
+        /// Create a temporary working directory and prepare running scripts
         pub(super) fn prepare_compute_env(&mut self) -> Result<PathBuf> {
             use std::os::unix::fs::PermissionsExt;
 
@@ -178,7 +180,7 @@ mod cmd {
                 gut::fs::write_to_file(run_file.with_file_name("POSCAR"), text)?;
 
                 let child = run_script(&run_file, tdir, tpl_dir, &cdir)?;
-                self.task = crate::task::Task::new(child).into();
+                self.task = crate::task::Task::new(child, tdir).into();
 
                 // return an empty string
                 String::new()
@@ -267,7 +269,7 @@ impl BlackBoxModel {
 }
 // compute:1 ends here
 
-// [[file:../models.note::*pub/methods][pub/methods:1]]
+// [[file:../models.note::*pub/input][pub/input:1]]
 impl BlackBoxModel {
     /// Render input using template
     pub fn render_input(&self, mol: &Molecule) -> Result<String> {
@@ -287,7 +289,11 @@ impl BlackBoxModel {
 
         Ok(txt)
     }
+}
+// pub/input:1 ends here
 
+// [[file:../models.note::*pub/methods][pub/methods:1]]
+impl BlackBoxModel {
     /// Construct BlackBoxModel model under directory context.
     pub fn from_dir<P: AsRef<Path>>(dir: P) -> Result<Self> {
         Self::from_dotenv(dir.as_ref()).context("Initialize BlackBoxModel failure.")
