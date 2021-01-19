@@ -51,7 +51,7 @@ impl Drop for Task {
 impl Task {
     /// write scaled positions to VASP stdin
     fn input_positions(&mut self, mol: &Molecule) -> Result<()> {
-        info!("write scaled positions into stdin");
+        debug!("write scaled positions into stdin");
         let mut lines = mol
             .get_scaled_positions()
             .expect("lattice")
@@ -89,12 +89,12 @@ impl Task {
     /// * mol: the molecule to be calculated
     /// * n: the total number of computations
     pub fn interact(&mut self, mol: &Molecule, n: usize) -> Result<ModelProperties> {
-        info!("interact with vasp process ...");
+        debug!("interact with vasp process ...");
         if n != 0 {
-            info!("input positions");
+            debug!("input positions");
             self.input_positions(mol)?;
         }
-        info!("recv outputs ...");
+        debug!("recv outputs ...");
         let mp = self.compute_mol(mol)?;
 
         Ok(mp)
