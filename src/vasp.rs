@@ -18,9 +18,13 @@ pub fn update_vasp_incar_file(path: &Path) -> Result<()> {
     let mandatory_params = vec![
         "POTIM = 0",
         "NELM = 200",
+        // a large enough value is required
         "NSW = 99999",
+        // need print energy and forces on each ion step
+        "NWRITE = 1",
         "IBRION = -1",
         "ISYM = 0",
+        // the key to enter interactive mode
         "INTERACTIVE = .TRUE.",
     ];
 
@@ -154,6 +158,16 @@ pub(crate) mod stdout {
         )
     }
 
+    // RMM:   7    -0.593198855580E+03    0.91447E-04   -0.23064E-04   436   0.279E-02
+    fn read_electron_step(s: &str) -> IResult<&str, usize> {
+        let tag_rmm = tag("RMM:");
+        do_parse!(
+            s,
+            tag_rmm >> space1 >> step: unsigned_digit >> read_line >> // ignore the remaining characters
+            (step)
+        )
+    }
+
     //    1 F= -.85097948E+02 E0= -.85096866E+02  d E =-.850979E+02  mag=     2.9646
     //    2 F= -.85086257E+02 E0= -.85082618E+02  d E =-.850863E+02  mag=     2.9772
     // POSITIONS: reading from stdin
@@ -172,16 +186,19 @@ pub(crate) mod stdout {
         let jump = take_until("FORCES:\n");
         do_parse!(
             s,
-            jump >>                 // skip leading text until found "FORCES"
-            forces: read_forces >>  // read forces
-            energy: read_energy >>  // read forces
+            jump >>                       // skip leading text until found "FORCES"
+            forces: read_forces        >> // read forces
+            energy: read_energy        >> // read forces
             ((energy, forces))
         )
     }
 
     /// Parse energy and forces from stdout of VASP interactive calculation
     pub fn parse_energy_and_forces(s: &str) -> Result<(f64, Vec<[f64; 3]>)> {
-        let (_, values) = read_energy_and_forces(s).unwrap();
+        // HACK: show SCF steps for references
+        let expected = s.lines().filter(|line| line.starts_with("RMM:")).last();
+        debug!("{}", expected.expect("RMM line").trim());
+        let (_, values) = read_energy_and_forces(s).expect("parse energy/forces from vasp stdout");
         Ok(values)
     }
 
