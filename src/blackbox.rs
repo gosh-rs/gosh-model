@@ -177,7 +177,8 @@ mod cmd {
             // FIXME: looks dirty
             let out = if interactive {
                 info!("interactive mode enabled");
-                gut::fs::write_to_file(run_file.with_file_name("POSCAR"), text)?;
+                // FIXME: to refactor out
+                gut::fs::write_to_file(&tdir.join("POSCAR"), text)?;
 
                 let child = run_script(&run_file, tdir, tpl_dir, &cdir)?;
                 self.task = crate::task::Task::new(child, tdir).into();

@@ -15,10 +15,6 @@ mod lj;
 // FIXME: to be removed
 mod task;
 mod vasp;
-
-pub use crate::blackbox::BlackBoxModel;
-pub use crate::lj::LennardJones;
-pub use crate::model_properties::*;
 // mods:1 ends here
 
 // [[file:../models.note::*chemical model][chemical model:1]]
@@ -44,3 +40,11 @@ pub trait ChemicalModel {
     }
 }
 // chemical model:1 ends here
+
+// [[file:../models.note::*pub][pub:1]]
+pub use crate::blackbox::BlackBoxModel;
+pub use crate::lj::LennardJones;
+pub use crate::model_properties::*;
+
+pub type BlackBox = BlackBoxModel;
+// pub:1 ends here
