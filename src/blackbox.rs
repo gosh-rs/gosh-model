@@ -256,6 +256,7 @@ impl BlackBoxModel {
     fn compute_interactive(&mut self, mol: &Molecule) -> Result<ModelProperties> {
         info!("Enter interactive vasp calculation mode ...");
         let first_run = !self.is_server_started();
+        // start child process as a server
         if first_run {
             debug!("first time run");
             let text = self.render_input(mol)?;
@@ -263,7 +264,19 @@ impl BlackBoxModel {
         }
         assert!(self.is_server_started());
 
+        // resume process before start interaction
+        // FIXME: refactoring needed
+        let int_file = self.int_file.as_ref().expect("no int file");
+        let pid = self.task.as_ref().unwrap().pid().to_string();
+        // it is not necessary to resume when just started
+        if !first_run {
+            let out = duct::cmd!(int_file, "resume", &pid).read()?;
+            info!("int_file stdout1: {:?}", out);
+        }
         let mp = self.task.as_mut().unwrap().interact(mol, self.ncalls)?;
+        // suspend process after interaction
+        let out = duct::cmd!(int_file, "pause", &pid).read()?;
+        info!("int_file stdout2: {:?}", out);
 
         Ok(mp)
     }

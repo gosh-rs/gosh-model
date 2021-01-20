@@ -36,12 +36,19 @@ impl Task {
             wrk_dir: wrk_dir.to_owned(),
         }
     }
+
+    /// Return child process ID
+    pub fn pid(&self) -> u32 {
+        self.child.id()
+    }
 }
 // base:1 ends here
 
 // [[file:../models.note::*stop][stop:1]]
 impl Drop for Task {
     fn drop(&mut self) {
+        // resume session
+         
         info!("Force to kill child process: {}", self.child.id());
         if let Err(err) = self.child.kill() {
             dbg!(err);
@@ -101,6 +108,7 @@ impl Task {
     /// * mol: the molecule to be calculated
     /// * n: the total number of computations
     pub fn interact(&mut self, mol: &Molecule, n: usize) -> Result<ModelProperties> {
+        // resume session
         debug!("interact with vasp process ...");
         if n != 0 {
             debug!("input positions");
@@ -108,6 +116,8 @@ impl Task {
         }
         debug!("recv outputs ...");
         let mp = self.compute_mol(mol)?;
+
+        // pause session
 
         Ok(mp)
     }
