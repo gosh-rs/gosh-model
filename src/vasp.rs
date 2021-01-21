@@ -196,8 +196,16 @@ pub(crate) mod stdout {
     /// Parse energy and forces from stdout of VASP interactive calculation
     pub fn parse_energy_and_forces(s: &str) -> Result<(f64, Vec<[f64; 3]>)> {
         // HACK: show SCF steps for references
-        let expected = s.lines().filter(|line| line.starts_with("RMM:")).last();
-        debug!("{}", expected.expect("RMM line").trim());
+        let lines = s.lines().collect_vec();
+        let pos = lines
+            .iter()
+            .position(|line| line.starts_with("FORCES:"))
+            .expect("vasp stdout: FORCES");
+        // the line above "FORCES:"
+        // DAV:  22    -0.870187496108E+03   -0.18821E+00   -0.15766E-01 20316   0.597E-01    0.108E+00
+        // or
+        // RMM:  22    -0.870187496108E+03   -0.18821E+00   -0.15766E-01 20316   0.597E-01    0.108E+00
+        debug!("{}", lines[pos - 1]);
         let (_, values) = read_energy_and_forces(s).expect("parse energy/forces from vasp stdout");
         Ok(values)
     }
