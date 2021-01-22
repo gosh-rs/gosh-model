@@ -172,16 +172,15 @@ mod cmd {
             debug!("submit cmdline: {}", cmdline);
             let tdir = run_file.parent().unwrap();
 
-            let interactive = self.int_file.is_some();
             // write POSCAR for interactive VASP calculation
             // FIXME: looks dirty
-            let out = if interactive {
+            let out = if let Some(int_file) = &self.int_file {
                 info!("interactive mode enabled");
                 // FIXME: to refactor out
                 gut::fs::write_to_file(&tdir.join("POSCAR"), text)?;
 
                 let child = run_script(&run_file, tdir, tpl_dir, &cdir)?;
-                self.task = crate::task::Task::new(child, tdir).into();
+                self.task = crate::task::Task::new(child, tdir).interactive(int_file).into();
 
                 // return an empty string
                 String::new()
@@ -264,19 +263,7 @@ impl BlackBoxModel {
         }
         assert!(self.is_server_started());
 
-        // resume process before start interaction
-        // FIXME: refactoring needed
-        let int_file = self.int_file.as_ref().expect("no int file");
-        let pid = self.task.as_ref().unwrap().pid().to_string();
-        // it is not necessary to resume when just started
-        if !first_run {
-            let out = duct::cmd!(int_file, "resume", &pid).read()?;
-            info!("int_file stdout1: {:?}", out);
-        }
         let mp = self.task.as_mut().unwrap().interact(mol, self.ncalls)?;
-        // suspend process after interaction
-        let out = duct::cmd!(int_file, "pause", &pid).read()?;
-        info!("int_file stdout2: {:?}", out);
 
         Ok(mp)
     }
