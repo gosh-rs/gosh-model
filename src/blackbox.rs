@@ -46,7 +46,7 @@ pub struct BlackBoxModel {
 
     // the order is matters
     // https://stackoverflow.com/questions/41053542/forcing-the-order-in-which-struct-fields-are-dropped
-    task: Option<crate::task::Task>,
+    task: Option<std::process::Child>,
 
     /// unique temporary working directory
     temp_dir: Option<TempDir>,
@@ -150,11 +150,8 @@ mod cmd {
     use std::process::{Child, Command, Stdio};
 
     impl BlackBoxModel {
-        pub(super) fn is_server_started(&self) -> bool {
-            self.task.is_some()
-        }
-
-        /// Call run script with `text` as its stdin
+        /// Call run script with `text` as its standard input (stdin), and wait
+        /// for process output (stdout)
         pub(super) fn submit_cmd(&mut self, text: &str) -> Result<String> {
             // TODO: prepare interact.sh
             let run_file = self.prepare_compute_env()?;
@@ -172,27 +169,28 @@ mod cmd {
             debug!("submit cmdline: {}", cmdline);
             let tdir = run_file.parent().unwrap();
 
-            // write POSCAR for interactive VASP calculation
-            // FIXME: looks dirty
+            // when in interactive mode, we call interact.sh script for output
             let out = if let Some(int_file) = &self.int_file {
                 info!("interactive mode enabled");
-                // FIXME: to refactor out
-                gut::fs::write_to_file(&tdir.join("POSCAR"), text)?;
-
-                let child = run_script(&run_file, tdir, tpl_dir, &cdir)?;
-                self.task = crate::task::Task::new(child, tdir).interactive(int_file).into();
-
-                // return an empty string
-                String::new()
+                // first time run: we store child proces to avoid being killed early
+                if self.task.is_none() {
+                    debug!("create main process {:?}", run_file);
+                    let child = process_create(&run_file, tdir, tpl_dir, &cdir)?;
+                    self.task = child.into();
+                }
+                let child = process_create(&int_file, tdir, tpl_dir, &cdir)?;
+                process_communicate(child, text)?
             } else {
-                call_with_input(&run_file, text, tdir, tpl_dir, &cdir)?
+                let child = process_create(&run_file, tdir, tpl_dir, &cdir)?;
+                process_communicate(child, text)?
             };
 
             Ok(out)
         }
     }
 
-    fn run_script(script: &Path, wrk_dir: &Path, tpl_dir: &Path, job_dir: &Path) -> Result<Child> {
+    // create child process
+    fn process_create(script: &Path, wrk_dir: &Path, tpl_dir: &Path, job_dir: &Path) -> Result<Child> {
         debug!("run script: {:?}", script);
 
         let child = Command::new(script)
@@ -207,11 +205,10 @@ mod cmd {
         Ok(child)
     }
 
-    /// Call external script and get its output (stdout)
-    fn call_with_input(script: &Path, input: &str, wrk_dir: &Path, tpl_dir: &Path, job_dir: &Path) -> Result<String> {
+    // feed process stdin and get stdout
+    fn process_communicate(mut child: std::process::Child, input: &str) -> Result<String> {
         use std::io::Write;
 
-        let mut child = run_script(script, wrk_dir, tpl_dir, job_dir)?;
         {
             let stdin = child.stdin.as_mut().context("Failed to open stdin")?;
             stdin.write_all(input.as_bytes()).context("Failed to write to stdin")?;
@@ -249,23 +246,6 @@ impl BlackBoxModel {
         let all = ModelProperties::parse_all(&output)?;
 
         Ok(all)
-    }
-
-    // TODO: make it more general
-    fn compute_interactive(&mut self, mol: &Molecule) -> Result<ModelProperties> {
-        info!("Enter interactive vasp calculation mode ...");
-        let first_run = !self.is_server_started();
-        // start child process as a server
-        if first_run {
-            debug!("first time run");
-            let text = self.render_input(mol)?;
-            self.submit_cmd(&text)?;
-        }
-        assert!(self.is_server_started());
-
-        let mp = self.task.as_mut().unwrap().interact(mol, self.ncalls)?;
-
-        Ok(mp)
     }
 }
 // compute:1 ends here
@@ -320,11 +300,7 @@ impl BlackBoxModel {
 // [[file:../models.note::*pub/chemical model][pub/chemical model:1]]
 impl ChemicalModel for BlackBoxModel {
     fn compute(&mut self, mol: &Molecule) -> Result<ModelProperties> {
-        let mp = if self.int_file.is_some() {
-            self.compute_interactive(mol)?
-        } else {
-            self.compute_normal(mol)?
-        };
+        let mp = self.compute_normal(mol)?;
         self.ncalls += 1;
 
         // sanity checking: the associated structure should have the same number
@@ -342,12 +318,7 @@ impl ChemicalModel for BlackBoxModel {
     }
 
     fn compute_bunch(&mut self, mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
-        let all = if self.int_file.is_some() {
-            error!("bunch calculation in interactive mode is not supported yet!");
-            unimplemented!()
-        } else {
-            self.compute_normal_bunch(mols)?
-        };
+        let all = self.compute_normal_bunch(mols)?;
         self.ncalls += 1;
 
         // one-to-one mapping

@@ -11,10 +11,6 @@ mod model_properties;
 
 mod blackbox;
 mod lj;
-
-// FIXME: to be removed
-mod task;
-mod vasp;
 // mods:1 ends here
 
 // [[file:../models.note::*chemical model][chemical model:1]]
