@@ -1,4 +1,4 @@
-// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*imports][imports:1]]
+// [[file:../models.note::*imports][imports:1]]
 use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
@@ -11,7 +11,7 @@ use gchemol::Lattice;
 use gchemol::Molecule;
 // imports:1 ends here
 
-// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*base][base:1]]
+// [[file:../models.note::*base][base:1]]
 const MODEL_PROPERTIES_FORMAT_VERSION: &str = "0.1";
 
 /// The computed results by external application
@@ -27,7 +27,7 @@ pub struct ModelProperties {
 }
 // base:1 ends here
 
-// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*display/parse][display/parse:1]]
+// [[file:../models.note::*display/parse][display/parse:1]]
 impl ModelProperties {
     /// Parse mulitple entries of ModelProperties from string slice
     pub fn parse_all(output: &str) -> Result<Vec<ModelProperties>> {
@@ -110,7 +110,7 @@ fn parse_model_results_single(part: &[&str]) -> Result<ModelProperties> {
     // parse record values
     if records.len() < 1 {
         warn!("Collected no results. Please check if the stream is clean!");
-        dbg!(part);
+        warn!("suspicious part: {:?}", part);
     }
 
     let mut results = ModelProperties::default();
@@ -267,7 +267,7 @@ impl ModelProperties {
     }
 }
 
-// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*test][test:1]]
+// [[file:../models.note::*test][test:1]]
 #[test]
 fn test_model_parse_results() {
     use approx::*;

@@ -76,23 +76,28 @@ mod env {
     }
 
     impl BlackBoxModel {
-        /// Create a temporary working directory and prepare running scripts
+        /// Create a temporary working directory and prepare running script
         pub(super) fn prepare_compute_env(&mut self) -> Result<PathBuf> {
-            use std::os::unix::fs::PermissionsExt;
+            let run = "run";
 
-            let tdir = new_scratch_directory(self.scr_dir.as_deref())?;
-            info!("BBM scratching directory: {:?}", tdir);
+            // create run script if it is not ready
+            let runfile = if let Some(tdir) = &self.temp_dir {
+                tdir.path().join(run)
+            } else {
+                let tdir = new_scratch_directory(self.scr_dir.as_deref())?;
+                info!("BBM scratching directory: {:?}", tdir);
 
-            // copy run file to work/scratch directory, and make sure it is
-            // executable
-            let dest = tdir.path().join("run");
-            std::fs::copy(&self.run_file, &dest)
-                .with_context(|| format!("copy {:?} to {:?}", &self.run_file, &dest))?;
-            std::fs::set_permissions(&dest, std::fs::Permissions::from_mode(0o755)).context("chmod +x")?;
+                // copy run script to work/scratch directory
+                let dest = tdir.path().join(run);
+                let txt = gut::fs::read_file(&self.run_file)?;
+                gut::fs::write_script_file(&dest, &txt)?;
 
-            self.temp_dir = tdir.into();
+                // save temp dir for next execution
+                self.temp_dir = tdir.into();
+                dest.canonicalize()?
+            };
 
-            Ok(dest.canonicalize()?)
+            Ok(runfile)
         }
 
         pub(super) fn from_dotenv(dir: &Path) -> Result<Self> {
@@ -174,8 +179,7 @@ mod cmd {
                 info!("interactive mode enabled");
                 // first time run: we store child proces to avoid being killed early
                 if self.task.is_none() {
-                    debug!("create main process {:?}", run_file);
-                    let child = process_create(&run_file, tdir, tpl_dir, &cdir)?;
+                    let child = process_create_normal(&run_file, tdir, tpl_dir, &cdir)?;
                     self.task = child.into();
                 }
                 let child = process_create(&int_file, tdir, tpl_dir, &cdir)?;
@@ -189,7 +193,7 @@ mod cmd {
         }
     }
 
-    // create child process
+    // create child process and capture stdin, stdout
     fn process_create(script: &Path, wrk_dir: &Path, tpl_dir: &Path, job_dir: &Path) -> Result<Child> {
         debug!("run script: {:?}", script);
 
@@ -201,6 +205,20 @@ mod cmd {
             .stdout(Stdio::piped())
             .spawn()
             .with_context(|| format!("Failed to run script: {:?}", &script))?;
+
+        Ok(child)
+    }
+
+    // create child process
+    fn process_create_normal(script: &Path, wrk_dir: &Path, tpl_dir: &Path, job_dir: &Path) -> Result<Child> {
+        debug!("run main script: {:?}", script);
+
+        let child = Command::new(script)
+            .current_dir(wrk_dir)
+            .env("BBM_TPL_DIR", tpl_dir)
+            .env("BBM_JOB_DIR", job_dir)
+            .spawn()
+            .with_context(|| format!("Failed to run main script: {:?}", &script))?;
 
         Ok(child)
     }
@@ -230,8 +248,11 @@ impl BlackBoxModel {
         let output = self.submit_cmd(&txt)?;
 
         // 3. collect model properties
-        let mp = output.parse().context("parse results")?;
-
+        let mp = output
+            .parse()
+            .with_context(|| format!("failed to parse computed results: {:?}", output))?;
+        
+        self.ncalls += 1;
         Ok(mp)
     }
 
@@ -244,7 +265,8 @@ impl BlackBoxModel {
 
         // 3. collect model properties
         let all = ModelProperties::parse_all(&output)?;
-
+        
+        self.ncalls += 1;
         Ok(all)
     }
 }
@@ -301,7 +323,6 @@ impl BlackBoxModel {
 impl ChemicalModel for BlackBoxModel {
     fn compute(&mut self, mol: &Molecule) -> Result<ModelProperties> {
         let mp = self.compute_normal(mol)?;
-        self.ncalls += 1;
 
         // sanity checking: the associated structure should have the same number
         // of atoms
@@ -319,7 +340,6 @@ impl ChemicalModel for BlackBoxModel {
 
     fn compute_bunch(&mut self, mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
         let all = self.compute_normal_bunch(mols)?;
-        self.ncalls += 1;
 
         // one-to-one mapping
         debug_assert_eq!(mols.len(), all.len());
