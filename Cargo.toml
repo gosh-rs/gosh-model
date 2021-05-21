@@ -19,6 +19,7 @@ gosh-core = { version = ">=0.0.1", features=["adhoc"] }
 text_parser = { version = "0.2", package = "gchemol-parser" }
 bstr = "0.2"
 duct = "0.13"
+nix = "0.20"
 
 [dev-dependencies]
 approx = "0.3"

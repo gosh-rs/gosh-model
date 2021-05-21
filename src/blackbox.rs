@@ -44,9 +44,9 @@ pub struct BlackBoxModel {
     /// Job starting directory
     job_dir: Option<PathBuf>,
 
-    // the order is matters
+    // the field order matters
     // https://stackoverflow.com/questions/41053542/forcing-the-order-in-which-struct-fields-are-dropped
-    task: Option<std::process::Child>,
+    task: Option<Task>,
 
     /// unique temporary working directory
     temp_dir: Option<TempDir>,
@@ -55,6 +55,40 @@ pub struct BlackBoxModel {
     ncalls: usize,
 }
 // base:1 ends here
+
+// [[file:../models.note::*task][task:1]]
+// NOTE: There is no implementation of Drop for std::process::Child
+/// A simple wrapper for killing child process on drop
+struct Task(std::process::Child);
+
+impl Drop for Task {
+    // NOTE: There is no implementation of Drop for std::process::Child
+    fn drop(&mut self) {
+        let child = &mut self.0;
+
+        if let Ok(Some(x)) = child.try_wait() {
+            info!("child process exited gracefully.");
+        } else {
+            // wait one second
+            std::thread::sleep(std::time::Duration::from_secs(1));
+            if let Err(e) = send_signal_term(child.id()) {
+                error!("Kill child process failure: {:?}", e);
+            }
+        }
+    }
+}
+
+fn send_signal_term(pid: u32) -> Result<()> {
+    use nix::sys::signal::{kill, Signal};
+
+    let pid = nix::unistd::Pid::from_raw(pid as i32);
+    let signal = Signal::SIGTERM;
+    info!("Inform child process {} to exit by sending signal {:?}.", pid, signal);
+    kill(pid, signal).with_context(|| format!("kill process {:?}", pid))?;
+
+    Ok(())
+}
+// task:1 ends here
 
 // [[file:../models.note::*env][env:1]]
 mod env {
@@ -180,7 +214,7 @@ mod cmd {
                 // first time run: we store child proces to avoid being killed early
                 if self.task.is_none() {
                     let child = process_create_normal(&run_file, tdir, tpl_dir, &cdir)?;
-                    self.task = child.into();
+                    self.task = Task(child).into();
                 }
                 let child = process_create(&int_file, tdir, tpl_dir, &cdir)?;
                 process_communicate(child, text)?
