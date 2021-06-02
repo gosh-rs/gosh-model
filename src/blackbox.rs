@@ -69,10 +69,16 @@ impl Drop for Task {
         if let Ok(Some(x)) = child.try_wait() {
             info!("child process exited gracefully.");
         } else {
-            // wait one second
-            std::thread::sleep(std::time::Duration::from_secs(1));
+            // inform child to exit gracefully
             if let Err(e) = send_signal_term(child.id()) {
                 error!("Kill child process failure: {:?}", e);
+            }
+            std::thread::sleep(std::time::Duration::from_secs_f64(0.1));
+            // wait a few seconds for child process to exit, or the scratch
+            // directory will be removed immediately.
+            if let Ok(None) = child.try_wait() {
+                info!("Child process is still running, one second for clean up ...",);
+                std::thread::sleep(std::time::Duration::from_secs(1));
             }
         }
     }
