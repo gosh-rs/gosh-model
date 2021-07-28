@@ -19,6 +19,7 @@ use crate::core::*;
 use gchemol::prelude::*;
 use gchemol::Molecule;
 
+/// Trait for chemical calculations
 pub trait ChemicalModel {
     /// Define how to compute molecular properties, such as energy, forces, or
     /// structure ...

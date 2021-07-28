@@ -1,12 +1,8 @@
-// header
-
-// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*header][header:1]]
+// [[file:../models.note::*header][header:1]]
 //! The Lennard-Jones model for test purpose
 // header:1 ends here
 
-// imports
-
-// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*imports][imports:1]]
+// [[file:../models.note::*imports][imports:1]]
 use crate::core::*;
 
 use gchemol::Molecule;
@@ -15,9 +11,7 @@ use vecfx::*;
 use crate::*;
 // imports:1 ends here
 
-// core
-
-// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*core][core:1]]
+// [[file:../models.note::*core][core:1]]
 #[derive(Clone, Copy, Debug)]
 pub struct LennardJones {
     /// Energy constant of the Lennard-Jones potential
@@ -95,9 +89,7 @@ impl LennardJones {
 }
 // core:1 ends here
 
-// entry
-
-// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*entry][entry:1]]
+// [[file:../models.note::*entry][entry:1]]
 impl ChemicalModel for LennardJones {
     fn compute(&mut self, mol: &Molecule) -> Result<ModelProperties> {
         if mol.lattice.is_some() {
@@ -146,12 +138,12 @@ impl ChemicalModel for LennardJones {
 }
 // entry:1 ends here
 
-// test
-
-// [[file:~/Workspace/Programming/gosh-rs/model/models.note::*test][test:1]]
+// [[file:../models.note::*test][test:1]]
 #[test]
 fn test_lj_model() {
-    use approx::*;
+    use vecfx::approx::*;
+
+    // gosh_core::gut::cli::setup_logger();
 
     let mut lj = LennardJones::default();
     lj.derivative_order = 1;

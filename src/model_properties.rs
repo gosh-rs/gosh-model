@@ -270,7 +270,7 @@ impl ModelProperties {
 // [[file:../models.note::*test][test:1]]
 #[test]
 fn test_model_parse_results() {
-    use approx::*;
+    use vecfx::approx::*;
 
     use serde_json;
 

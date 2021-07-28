@@ -64,6 +64,7 @@ struct Task(std::process::Child);
 impl Drop for Task {
     // NOTE: There is no implementation of Drop for std::process::Child
     fn drop(&mut self) {
+        info!("Task dropped. Kill external commands in session.");
         let child = &mut self.0;
 
         if let Ok(Some(x)) = child.try_wait() {
