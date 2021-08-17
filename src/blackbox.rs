@@ -317,6 +317,14 @@ impl BlackBoxModel {
 impl BlackBoxModel {
     /// Render input using template
     pub fn render_input(&self, mol: &Molecule) -> Result<String> {
+        // check NaN values in positions
+        for (i, a) in mol.atoms() {
+            let p = a.position();
+            if p.iter().any(|x| x.is_nan()) {
+                error!("Invalid position of atom {}: {:?}", i, p);
+                bail!("Molecule has invalid data in positions.");
+            }
+        }
         // render input text with external template file
         let txt = mol.render_with(&self.tpl_file)?;
 
