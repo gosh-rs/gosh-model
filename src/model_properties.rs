@@ -27,7 +27,55 @@ pub struct ModelProperties {
 }
 // base:1 ends here
 
-// [[file:../models.note::*display/parse][display/parse:1]]
+// [[file:../models.note::3b493716][3b493716]]
+#[derive(Debug, Clone)]
+struct Header {
+    name: String,
+    unit_factor: f64,
+}
+
+impl FromStr for Header {
+    type Err = gut::prelude::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        if s.starts_with("@") {
+            let mut unit_factor = 1.0;
+            let parts = &s[1..].split_whitespace().collect_vec();
+            let name = parts[0].into();
+            if parts.len() > 1 {
+                for p in &parts[1..] {
+                    if let Some((k, v)) = p.split_once('=') {
+                        if k == "unit_factor" {
+                            unit_factor = v.parse::<f64>()?;
+                        }
+                    }
+                }
+            }
+            Ok(Self { name, unit_factor })
+        } else {
+            bail!("invalid model properties section header: {}", s);
+        }
+    }
+}
+
+#[test]
+fn test_header() {
+    let s = "@forces ";
+    let h: Header = s.parse().unwrap();
+    assert_eq!(h.name, "forces");
+    assert_eq!(h.unit_factor, 1.0);
+
+    let s = "@forces unit_factor=1";
+    let h: Header = s.parse().unwrap();
+    assert_eq!(h.unit_factor, 1.0);
+
+    let s = "@forces unit_factor=-1 test=2";
+    let h: Header = s.parse().unwrap();
+    assert_eq!(h.unit_factor, -1.0);
+}
+// 3b493716 ends here
+
+// [[file:../models.note::37f15603][37f15603]]
 impl ModelProperties {
     /// Parse mulitple entries of ModelProperties from string slice
     pub fn parse_all(output: &str) -> Result<Vec<ModelProperties>> {
@@ -99,7 +147,8 @@ fn parse_model_results_single(part: &[&str]) -> Result<ModelProperties> {
     for line in part {
         let line = line.trim();
         if line.starts_with("@") {
-            header = line.split_whitespace().next();
+            // header = line.split_whitespace().next();
+            header = line.trim_end().into();
         } else {
             if let Some(k) = header {
                 records.entry(k).or_insert(vec![]).push(line);
@@ -115,39 +164,41 @@ fn parse_model_results_single(part: &[&str]) -> Result<ModelProperties> {
 
     let mut results = ModelProperties::default();
     for (k, lines) in records {
-        match k {
-            "@energy" => {
+        let header: Header = k.parse()?;
+        let unit_factor = header.unit_factor;
+        match header.name.as_str() {
+            "energy" => {
                 assert_eq!(1, lines.len(), "expect one line containing energy");
-                let energy = lines[0].trim().parse()?;
+                let energy = lines[0].trim().parse::<f64>()? * unit_factor;
                 results.energy = Some(energy);
             }
-            "@forces" => {
+            "forces" => {
                 let mut forces: Vec<[f64; 3]> = vec![];
                 for line in lines {
                     let parts: Vec<_> = line.split_whitespace().collect();
                     if parts.len() != 3 {
                         bail!("expect xyz forces: {}", line);
                     }
-                    let fx = parts[0].parse()?;
-                    let fy = parts[1].parse()?;
-                    let fz = parts[2].parse()?;
+                    let fx = parts[0].parse::<f64>()? * unit_factor;
+                    let fy = parts[1].parse::<f64>()? * unit_factor;
+                    let fz = parts[2].parse::<f64>()? * unit_factor;
                     forces.push([fx, fy, fz]);
                 }
 
                 results.forces = Some(forces);
             }
-            "@structure" => {
+            "structure" => {
                 let mut s = lines.join("\n");
                 s.push_str("\n\n");
                 let mol = Molecule::from_str(&s, "text/pxyz")?;
                 results.molecule = Some(mol);
             }
-            "@dipole" => {
+            "dipole" => {
                 assert_eq!(1, lines.len(), "expect one line containing dipole moment");
                 let parts: Vec<_> = lines[0].split_whitespace().collect();
-                let fx = parts[0].parse()?;
-                let fy = parts[1].parse()?;
-                let fz = parts[2].parse()?;
+                let fx = parts[0].parse::<f64>()? * unit_factor;
+                let fy = parts[1].parse::<f64>()? * unit_factor;
+                let fz = parts[2].parse::<f64>()? * unit_factor;
                 results.dipole = Some([fx, fy, fz]);
             }
             _ => {
@@ -185,7 +236,7 @@ fn parse_model_results(stream: &str) -> Result<Vec<ModelProperties>> {
 
     Ok(all_results)
 }
-// display/parse:1 ends here
+// 37f15603 ends here
 
 impl ModelProperties {
     /// Set item energy.
@@ -267,7 +318,7 @@ impl ModelProperties {
     }
 }
 
-// [[file:../models.note::*test][test:1]]
+// [[file:../models.note::6d51755f][6d51755f]]
 #[test]
 fn test_model_parse_results() {
     use vecfx::approx::*;
@@ -294,4 +345,15 @@ fn test_model_parse_results() {
     let e = r.energy.expect("model result: energy");
     assert_relative_eq!(-0.329336, e, epsilon = 1e-4);
 }
-// test:1 ends here
+
+#[test]
+fn test_model_parse_results_special() -> Result<()> {
+
+    let txt = gchemol::io::read_file("./tests/files/sample_special.txt")?;
+    let r: ModelProperties = txt.parse()?;
+    assert_eq!(r.energy.unwrap(), 0.0);
+    assert_eq!(r.forces.unwrap()[0][0], 0.10525500903260E-03);
+
+    Ok(())
+}
+// 6d51755f ends here
