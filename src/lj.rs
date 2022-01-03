@@ -89,7 +89,7 @@ impl LennardJones {
 }
 // core:1 ends here
 
-// [[file:../models.note::*entry][entry:1]]
+// [[file:../models.note::d55b0da4][d55b0da4]]
 impl ChemicalModel for LennardJones {
     fn compute(&mut self, mol: &Molecule) -> Result<ModelProperties> {
         if mol.lattice.is_some() {
@@ -107,7 +107,7 @@ impl ChemicalModel for LennardJones {
 
         // calculate energy and forces
         let positions: Vec<_> = mol.positions().collect();
-        let dm = gchemol::geom::get_distance_matrix(&positions);
+        let dm = get_distance_matrix(&positions);
         for i in 0..natoms {
             for j in 0..i {
                 let r = dm[i][j];
@@ -136,7 +136,27 @@ impl ChemicalModel for LennardJones {
         Ok(mr)
     }
 }
-// entry:1 ends here
+
+/// Return all distances between any pair of points
+fn get_distance_matrix(points: &[[f64; 3]]) -> Vec<Vec<f64>> {
+    use gchemol::geom::prelude::*;
+
+    let npts = points.len();
+
+    // fill distance matrix
+    let mut distmat = vec![];
+    for i in 0..npts {
+        let mut dijs = vec![];
+        for j in 0..npts {
+            let dij = points[i].distance(points[j]);
+            dijs.push(dij);
+        }
+        distmat.push(dijs);
+    }
+
+    distmat
+}
+// d55b0da4 ends here
 
 // [[file:../models.note::*test][test:1]]
 #[test]
