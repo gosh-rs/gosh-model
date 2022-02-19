@@ -1,8 +1,8 @@
 # [[file:models.note::e15c455e][e15c455e]]
 [package]
 name = "gosh-model"
-version = "0.0.13"
-edition = "2018"
+version = "0.0.14"
+edition = "2021"
 authors = ["Wenping Guo <ybyygu@gmail.com>"]
 description = "Chemical model for gosh"
 homepage = "https://github.com/gosh-rs/gosh-model"
@@ -15,7 +15,7 @@ envy = "0.4"
 serde_json = "1.0"
 envfile = "0.2"
 tempfile = "3.0"
-gosh-core = { version = ">=0.0.1", features=["adhoc"] }
+gosh-core = { version = "0.0.2", features=["adhoc"] }
 bstr = "0.2"
 duct = "0.13"
 nix = "0.20"
