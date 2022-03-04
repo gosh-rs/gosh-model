@@ -2,14 +2,12 @@
 //! The Lennard-Jones model for test purpose
 // header:1 ends here
 
-// [[file:../models.note::*imports][imports:1]]
-use crate::core::*;
+// [[file:../models.note::5aceffc7][5aceffc7]]
+use super::*;
 
 use gchemol::Molecule;
 use vecfx::*;
-
-use crate::*;
-// imports:1 ends here
+// 5aceffc7 ends here
 
 // [[file:../models.note::*core][core:1]]
 #[derive(Clone, Copy, Debug)]
@@ -91,7 +89,7 @@ impl LennardJones {
 
 // [[file:../models.note::d55b0da4][d55b0da4]]
 impl ChemicalModel for LennardJones {
-    fn compute(&mut self, mol: &Molecule) -> Result<ModelProperties> {
+    fn compute(&mut self, mol: &Molecule) -> Result<Computed> {
         if mol.lattice.is_some() {
             warn!("LJ model: periodic lattice will be ignored!");
         }
@@ -123,17 +121,17 @@ impl ChemicalModel for LennardJones {
             }
         }
 
-        let mut mr = ModelProperties::default();
-        mr.set_energy(energy);
+        let mut computed = Computed::default();
+        computed.set_energy(energy);
 
         if self.derivative_order >= 1 {
-            mr.set_forces(forces);
+            computed.set_forces(forces);
         }
         if self.derivative_order >= 2 {
             unimplemented!();
         }
 
-        Ok(mr)
+        Ok(computed)
     }
 }
 

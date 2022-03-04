@@ -18,14 +18,13 @@
 //! ```
 // header:1 ends here
 
-// [[file:../models.note::*imports][imports:1]]
+// [[file:../models.note::c3765387][c3765387]]
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 
-use crate::core::*;
-use crate::*;
+use super::*;
 use gchemol::Molecule;
-// imports:1 ends here
+// c3765387 ends here
 
 // [[file:../models.note::*base][base:1]]
 pub struct BlackBoxModel {
@@ -279,9 +278,9 @@ mod cmd {
 }
 // cmd:1 ends here
 
-// [[file:../models.note::*compute][compute:1]]
+// [[file:../models.note::360435b0][360435b0]]
 impl BlackBoxModel {
-    fn compute_normal(&mut self, mol: &Molecule) -> Result<ModelProperties> {
+    fn compute_normal(&mut self, mol: &Molecule) -> Result<Computed> {
         // 1. render input text with the template
         let txt = self.render_input(&mol)?;
 
@@ -292,12 +291,12 @@ impl BlackBoxModel {
         let mp = output
             .parse()
             .with_context(|| format!("failed to parse computed results: {:?}", output))?;
-        
+
         self.ncalls += 1;
         Ok(mp)
     }
 
-    fn compute_normal_bunch(&mut self, mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
+    fn compute_normal_bunch(&mut self, mols: &[Molecule]) -> Result<Vec<Computed>> {
         // 1. render input text with the template
         let txt = self.render_input_bunch(mols)?;
 
@@ -305,13 +304,13 @@ impl BlackBoxModel {
         let output = self.submit_cmd(&txt)?;
 
         // 3. collect model properties
-        let all = ModelProperties::parse_all(&output)?;
-        
+        let all = Computed::parse_all(&output)?;
+
         self.ncalls += 1;
         Ok(all)
     }
 }
-// compute:1 ends here
+// 360435b0 ends here
 
 // [[file:../models.note::*pub/input][pub/input:1]]
 impl BlackBoxModel {
@@ -368,9 +367,9 @@ impl BlackBoxModel {
 }
 // pub/methods:1 ends here
 
-// [[file:../models.note::*pub/chemical model][pub/chemical model:1]]
+// [[file:../models.note::5ff4e3f1][5ff4e3f1]]
 impl ChemicalModel for BlackBoxModel {
-    fn compute(&mut self, mol: &Molecule) -> Result<ModelProperties> {
+    fn compute(&mut self, mol: &Molecule) -> Result<Computed> {
         let mp = self.compute_normal(mol)?;
 
         // sanity checking: the associated structure should have the same number
@@ -387,7 +386,7 @@ impl ChemicalModel for BlackBoxModel {
         Ok(mp)
     }
 
-    fn compute_bunch(&mut self, mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
+    fn compute_bunch(&mut self, mols: &[Molecule]) -> Result<Vec<Computed>> {
         let all = self.compute_normal_bunch(mols)?;
 
         // one-to-one mapping
@@ -395,7 +394,7 @@ impl ChemicalModel for BlackBoxModel {
         Ok(all)
     }
 }
-// pub/chemical model:1 ends here
+// 5ff4e3f1 ends here
 
 // [[file:../models.note::*test][test:1]]
 #[test]
