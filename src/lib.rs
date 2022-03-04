@@ -13,7 +13,7 @@ mod blackbox;
 mod lj;
 // mods:1 ends here
 
-// [[file:../models.note::*chemical model][chemical model:1]]
+// [[file:../models.note::bf8cc73b][bf8cc73b]]
 use crate::core::*;
 
 use gchemol::prelude::*;
@@ -25,18 +25,13 @@ pub trait ChemicalModel {
     /// structure ...
     fn compute(&mut self, mol: &Molecule) -> Result<ModelProperties>;
 
-    #[deprecated(note = "use compute_bunch instead")]
-    fn compute_bundle(&mut self, mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
-        self.compute_bunch(mols)
-    }
-
     /// Define how to compute the properties of a bunch of molecules, mainly for
     /// reduce IO costs of small molecule calculations.
     fn compute_bunch(&mut self, mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
         unimplemented!()
     }
 }
-// chemical model:1 ends here
+// bf8cc73b ends here
 
 // [[file:../models.note::*pub][pub:1]]
 pub use crate::blackbox::BlackBoxModel;
