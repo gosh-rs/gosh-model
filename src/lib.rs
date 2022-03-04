@@ -22,7 +22,7 @@ pub trait ChemicalModel {
 
     /// Define how to compute the properties of a bunch of molecules, mainly for
     /// reduce IO costs of small molecule calculations.
-    fn compute_bunch(&mut self, mols: &[Molecule]) -> Result<Vec<Computed>> {
+    fn compute_bunch(&mut self, _mols: &[Molecule]) -> Result<Vec<Computed>> {
         unimplemented!()
     }
 }

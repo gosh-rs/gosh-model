@@ -55,7 +55,7 @@ pub struct BlackBoxModel {
 }
 // base:1 ends here
 
-// [[file:../models.note::*task][task:1]]
+// [[file:../models.note::045f62c4][045f62c4]]
 // NOTE: There is no implementation of Drop for std::process::Child
 /// A simple wrapper for killing child process on drop
 struct Task(std::process::Child);
@@ -67,7 +67,7 @@ impl Drop for Task {
         let child = &mut self.0;
 
         if let Ok(Some(x)) = child.try_wait() {
-            info!("child process exited gracefully.");
+            info!("child process exited gracefully with status {x:?}.");
         } else {
             // inform child to exit gracefully
             if let Err(e) = send_signal_term(child.id()) {
@@ -94,9 +94,9 @@ fn send_signal_term(pid: u32) -> Result<()> {
 
     Ok(())
 }
-// task:1 ends here
+// 045f62c4 ends here
 
-// [[file:../models.note::*env][env:1]]
+// [[file:../models.note::6cc8ead1][6cc8ead1]]
 mod env {
     use super::*;
     use tempfile::{tempdir, tempdir_in};
@@ -147,7 +147,7 @@ mod env {
                 .with_context(|| format!("invalid template directory: {:?}", dir))?;
 
             // read environment variables from .env config if any
-            let mut envfile = envfile::EnvFile::new(dir.join(".env")).unwrap();
+            let envfile = envfile::EnvFile::new(dir.join(".env")).unwrap();
             for (key, value) in &envfile.store {
                 info!("found env var from {:?}: {}={}", &envfile.path, key, value);
             }
@@ -155,7 +155,7 @@ mod env {
             let run_file = envfile.get("BBM_RUN_FILE").unwrap_or("submit.sh");
             let tpl_file = envfile.get("BBM_TPL_FILE").unwrap_or("input.hbs");
             let int_file_opt = envfile.get("BBM_INT_FILE");
-            let mut bbm = BlackBoxModel {
+            let bbm = BlackBoxModel {
                 run_file: dir.join(run_file),
                 tpl_file: dir.join(tpl_file),
                 int_file: int_file_opt.map(|f| dir.join(f)),
@@ -187,9 +187,9 @@ mod env {
         Ok(())
     }
 }
-// env:1 ends here
+// 6cc8ead1 ends here
 
-// [[file:../models.note::*cmd][cmd:1]]
+// [[file:../models.note::50a738a3][50a738a3]]
 mod cmd {
     use super::*;
     use std::process::{Child, Command, Stdio};
@@ -265,8 +265,6 @@ mod cmd {
 
     // feed process stdin and get stdout
     fn process_communicate(mut child: std::process::Child, input: &str) -> Result<String> {
-        use std::io::Write;
-
         {
             let stdin = child.stdin.as_mut().context("Failed to open stdin")?;
             stdin.write_all(input.as_bytes()).context("Failed to write to stdin")?;
@@ -276,7 +274,7 @@ mod cmd {
         Ok(String::from_utf8_lossy(&output.stdout).to_string())
     }
 }
-// cmd:1 ends here
+// 50a738a3 ends here
 
 // [[file:../models.note::360435b0][360435b0]]
 impl BlackBoxModel {
