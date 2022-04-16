@@ -3,12 +3,13 @@ use gosh_core::*;
 use gut::prelude::*;
 // 4e128786 ends here
 
-// [[file:../models.note::*mods][mods:1]]
+// [[file:../models.note::5d2df595][5d2df595]]
 mod model_properties;
 
 mod blackbox;
+mod edip;
 mod lj;
-// mods:1 ends here
+// 5d2df595 ends here
 
 // [[file:../models.note::bf8cc73b][bf8cc73b]]
 use gchemol::prelude::*;
@@ -32,6 +33,8 @@ pub trait ChemicalModel {
 pub use crate::blackbox::BlackBoxModel;
 pub use crate::lj::LennardJones;
 pub use crate::model_properties::*;
+
+pub use crate::edip::Edip;
 
 pub type BlackBox = BlackBoxModel;
 pub type ModelProperties = Computed;

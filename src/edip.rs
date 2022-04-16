@@ -1,0 +1,130 @@
+// [[file:../models.note::83a3f290][83a3f290]]
+/* EDIP Si PARAMETERS Justo et al., Phys. Rev. B 58, 2539 (1998).
+
+     5.6714030     2.0002804     1.2085196     3.1213820     0.5774108
+     1.4533108     1.1247945     3.1213820     2.5609104    78.7590539
+     0.6966326   312.1341346     1.4074424     0.0070975     3.1083847
+
+connection between these parameters and Justo et al., Phys. Rev. B 58, 2539 (1998):
+
+A((B/r)**rh-palp*exp(-bet*Z*Z)) = A'((B'/r)**rh-exp(-bet*Z*Z))
+
+so in the paper (')
+A' = A*palp
+B' = B * palp**(-1/rh)
+eta = detla/Qo
+*/
+
+//! Literature
+//!
+//! http://www-math.mit.edu/~bazant/EDIP
+//! M.Z. Bazant & E. Kaxiras: Modeling of Covalent Bonding in Solids by
+//!                           Inversion of Cohesive Energy Curves;
+//!                           Phys. Rev. Lett. 77, 4370 (1996)
+//! M.Z. Bazant, E. Kaxiras and J.F. Justo: Environment-dependent interatomic
+//!                                         potential for bulk silicon;
+//!                                         Phys. Rev. B 56, 8542-8552 (1997)
+// 83a3f290 ends here
+
+// [[file:../models.note::178e12ff][178e12ff]]
+use super::*;
+
+use std::collections::{HashMap, HashSet};
+
+use ::edip::EdipParameters;
+use vecfx::*;
+// 178e12ff ends here
+
+// [[file:../models.note::6e669f3b][6e669f3b]]
+#[derive(Clone, Debug, Default)]
+pub struct Edip {
+    virial: f64,
+}
+
+impl ChemicalModel for Edip {
+    fn compute(&mut self, mol: &Molecule) -> Result<Computed> {
+        // only works for silicon
+        let not_silicon = mol.symbols().any(|x| x != "Si");
+        if not_silicon {
+            bail!("EDIP potential model only works for Silicon");
+        }
+
+        let n = mol.natoms();
+        let positions = mol.positions().collect_vec();
+        let mut neighbors = vec![];
+        let mut distances = HashMap::new();
+        // FIXME: rewrite for periodic system
+        for i in 0..n {
+            let mut connected = HashSet::new();
+            for j in 0..n {
+                if i != j {
+                    let dx = positions[j][0] - positions[i][0];
+                    let dy = positions[j][1] - positions[i][1];
+                    let dz = positions[j][2] - positions[i][2];
+                    distances.insert((i, j), [dx, dy, dz]);
+                    connected.insert(j);
+                }
+            }
+            neighbors.push(connected);
+        }
+
+        let params = EdipParameters::silicon();
+        let mut forces = vec![[0.0; 3]; n];
+        let (energy, virial) = ::edip::compute_forces(&mut forces, &neighbors, &distances, &params);
+
+        let mut computed = Computed::default();
+        computed.set_energy(energy);
+        computed.set_forces(forces);
+
+        // FIXME: could be removed
+        self.virial = virial;
+
+        Ok(computed)
+    }
+}
+// 6e669f3b ends here
+
+// [[file:../models.note::28122508][28122508]]
+#[test]
+fn test_edip() -> Result<()> {
+    use gchemol::prelude::*;
+    use gchemol::Molecule;
+    use vecfx::*;
+
+    let f = "./tests/files/si10.xyz";
+    let mol = Molecule::from_file(f)?;
+
+    let mut model = Edip::default();
+    let computed = model.compute(&mol)?;
+    let f = computed.get_forces().unwrap();
+    let f_norm = f.as_flat().as_vector_slice().norm();
+    assert!(dbg!(f_norm) <= 0.005);
+    let energy = computed.get_energy().unwrap();
+    approx::assert_relative_eq!(energy, -39.57630354331939, epsilon = 1e-5);
+    approx::assert_relative_eq!(model.virial, 0.00224989660978845, epsilon = 1e-5);
+
+    let f = "./tests/files/si5.xyz";
+    let mol = Molecule::from_file(f)?;
+    let computed = model.compute(&mol)?;
+    let energy = computed.get_energy().unwrap();
+    approx::assert_relative_eq!(energy, -14.566606, epsilon = 1e-5);
+    // FIXME: refactor
+    let virial = model.virial;
+    approx::assert_relative_eq!(virial, -3.643552, epsilon = 1e-5);
+
+    let f = computed.get_forces().unwrap();
+    #[rustfmt::skip]
+    let f_expected = [ -0.19701000,  -0.62522600,   0.02948000,
+                       -0.23330600,   0.43698600,   0.42511400,
+                        0.43297600,   0.18333500,  -0.44864300,
+                       -1.75669300,   0.50149400,  -1.48879300,
+                        1.75403300,  -0.49658900,   1.48284200];
+    approx::assert_relative_eq!(
+        f.as_flat().as_vector_slice(),
+        f_expected.as_vector_slice(),
+        epsilon = 1E-5,
+    );
+
+    Ok(())
+}
+// 28122508 ends here
