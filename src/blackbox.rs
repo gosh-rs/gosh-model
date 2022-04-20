@@ -216,7 +216,7 @@ mod cmd {
 
             // when in interactive mode, we call interact.sh script for output
             let out = if let Some(int_file) = &self.int_file {
-                info!("interactive mode enabled");
+                debug!("interactive mode enabled");
                 // first time run: we store child proces to avoid being killed early
                 if self.task.is_none() {
                     let child = process_create_normal(&run_file, tdir, tpl_dir, &cdir)?;

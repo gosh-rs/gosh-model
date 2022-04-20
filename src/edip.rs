@@ -32,6 +32,7 @@ use super::*;
 use std::collections::{HashMap, HashSet};
 
 use ::edip::EdipParameters;
+use gchemol::neighbors::Neighborhood;
 use vecfx::*;
 // 178e12ff ends here
 
@@ -39,32 +40,56 @@ use vecfx::*;
 #[derive(Clone, Debug, Default)]
 pub struct Edip {
     virial: f64,
+    // for create neighbors
+    nh: Neighborhood,
+}
+
+impl Edip {
+    fn update_nh(&mut self, mol: &Molecule) {
+        self.nh = Neighborhood::new();
+        // use atom index (0-based) for node index
+        self.nh.update(mol.positions().enumerate());
+        if let Some(lat) = mol.get_lattice() {
+            self.nh.set_lattice(lat.matrix().into());
+        }
+    }
 }
 
 impl ChemicalModel for Edip {
     fn compute(&mut self, mol: &Molecule) -> Result<Computed> {
+        const search_radius: f64 = 4.0;
+
         // only works for silicon
         let not_silicon = mol.symbols().any(|x| x != "Si");
         if not_silicon {
             bail!("EDIP potential model only works for Silicon");
         }
 
+        self.update_nh(mol);
         let n = mol.natoms();
         let positions = mol.positions().collect_vec();
         let mut neighbors = vec![];
         let mut distances = HashMap::new();
         // FIXME: rewrite for periodic system
+        let lat = mol.get_lattice();
         for i in 0..n {
             let mut connected = HashSet::new();
-            for j in 0..n {
-                if i != j {
-                    let dx = positions[j][0] - positions[i][0];
-                    let dy = positions[j][1] - positions[i][1];
-                    let dz = positions[j][2] - positions[i][2];
-                    distances.insert((i, j), [dx, dy, dz]);
-                    connected.insert(j);
-                }
+            for x in self.nh.neighbors(i, search_radius) {
+                // FIXME: avoid recompute pair distance in edip crate
+                let j = x.node;
+                let pi: Vector3f = positions[i].into();
+                let pj: Vector3f = positions[j].into();
+                let d = if let Some(image) = x.image {
+                    // translation periodic image
+                    let t = lat.unwrap().to_cart(image);
+                    pj + t - pi
+                } else {
+                    pj - pi
+                };
+                distances.insert((i, j), d.into());
+                connected.insert(j);
             }
+
             neighbors.push(connected);
         }
 
@@ -124,6 +149,13 @@ fn test_edip() -> Result<()> {
         f_expected.as_vector_slice(),
         epsilon = 1E-5,
     );
+
+    // for silicon crystal
+    let mol = Molecule::from_file("./tests/files/si-3x3x3.cif")?;
+    let computed = model.compute(&mol)?;
+    let energy = computed.get_energy().unwrap();
+    let f = computed.get_forces().unwrap();
+    dbg!(f.as_flat().as_vector_slice().norm());
 
     Ok(())
 }
