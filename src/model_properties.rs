@@ -230,8 +230,13 @@ fn parse_model_results(stream: &str) -> Result<Vec<Computed>> {
     for part in parts {
         // collect records as header separated lines
         // blank lines are ignored
-        let mp = parse_model_results_single(part)?;
-        all_results.push(mp);
+        // ignore empty part
+        if part.is_empty() {
+            continue;
+        } else {
+            let mp = parse_model_results_single(part)?;
+            all_results.push(mp);
+        }
     }
 
     Ok(all_results)
