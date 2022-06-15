@@ -125,7 +125,7 @@ mod env {
                 tdir.path().join(run)
             } else {
                 let tdir = new_scratch_directory(self.scr_dir.as_deref())?;
-                info!("BBM scratching directory: {:?}", tdir);
+                debug!("BBM scratching directory: {:?}", tdir);
 
                 // copy run script to work/scratch directory
                 let dest = tdir.path().join(run);
@@ -149,7 +149,7 @@ mod env {
             // read environment variables from .env config if any
             let envfile = envfile::EnvFile::new(dir.join(".env")).unwrap();
             for (key, value) in &envfile.store {
-                info!("found env var from {:?}: {}={}", &envfile.path, key, value);
+                debug!("found env var from {:?}: {}={}", &envfile.path, key, value);
             }
 
             let run_file = envfile.get("BBM_RUN_FILE").unwrap_or("submit.sh");
