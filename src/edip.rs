@@ -1,31 +1,3 @@
-// [[file:../models.note::83a3f290][83a3f290]]
-/* EDIP Si PARAMETERS Justo et al., Phys. Rev. B 58, 2539 (1998).
-
-     5.6714030     2.0002804     1.2085196     3.1213820     0.5774108
-     1.4533108     1.1247945     3.1213820     2.5609104    78.7590539
-     0.6966326   312.1341346     1.4074424     0.0070975     3.1083847
-
-connection between these parameters and Justo et al., Phys. Rev. B 58, 2539 (1998):
-
-A((B/r)**rh-palp*exp(-bet*Z*Z)) = A'((B'/r)**rh-exp(-bet*Z*Z))
-
-so in the paper (')
-A' = A*palp
-B' = B * palp**(-1/rh)
-eta = detla/Qo
-*/
-
-//! Literature
-//!
-//! http://www-math.mit.edu/~bazant/EDIP
-//! M.Z. Bazant & E. Kaxiras: Modeling of Covalent Bonding in Solids by
-//!                           Inversion of Cohesive Energy Curves;
-//!                           Phys. Rev. Lett. 77, 4370 (1996)
-//! M.Z. Bazant, E. Kaxiras and J.F. Justo: Environment-dependent interatomic
-//!                                         potential for bulk silicon;
-//!                                         Phys. Rev. B 56, 8542-8552 (1997)
-// 83a3f290 ends here
-
 // [[file:../models.note::178e12ff][178e12ff]]
 use super::*;
 

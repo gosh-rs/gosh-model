@@ -21,7 +21,6 @@ duct = "0.13"
 nix = "0.20"
 edip = "0.1"
 
-
 [features]
 adhoc = []
 # e15c455e ends here
