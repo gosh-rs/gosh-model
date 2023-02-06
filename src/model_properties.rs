@@ -1,22 +1,22 @@
-// [[file:../models.note::*imports][imports:1]]
+// [[file:../models.note::b456354a][b456354a]]
 use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
 
-use crate::core::*;
+use super::*;
 
 use gchemol::prelude::*;
 use gchemol::Atom;
 use gchemol::Lattice;
 use gchemol::Molecule;
-// imports:1 ends here
+// b456354a ends here
 
-// [[file:../models.note::*base][base:1]]
+// [[file:../models.note::7de724a0][7de724a0]]
 const MODEL_PROPERTIES_FORMAT_VERSION: &str = "0.1";
 
-/// The computed results by external application
+/// The computed model properties by external application
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct ModelProperties {
+pub struct Computed {
     energy: Option<f64>,
     forces: Option<Vec<[f64; 3]>>,
     dipole: Option<[f64; 3]>,
@@ -25,7 +25,7 @@ pub struct ModelProperties {
     #[serde(skip_deserializing, skip_serializing)]
     force_constants: Option<Vec<[f64; 3]>>,
 }
-// base:1 ends here
+// 7de724a0 ends here
 
 // [[file:../models.note::3b493716][3b493716]]
 #[derive(Debug, Clone)]
@@ -76,9 +76,9 @@ fn test_header() {
 // 3b493716 ends here
 
 // [[file:../models.note::37f15603][37f15603]]
-impl ModelProperties {
-    /// Parse mulitple entries of ModelProperties from string slice
-    pub fn parse_all(output: &str) -> Result<Vec<ModelProperties>> {
+impl Computed {
+    /// Parse mulitple entries of Computed from string slice
+    pub fn parse_all(output: &str) -> Result<Vec<Computed>> {
         parse_model_results(output)
     }
 
@@ -89,7 +89,7 @@ impl ModelProperties {
     }
 }
 
-impl fmt::Display for ModelProperties {
+impl fmt::Display for Computed {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut txt = format!("@model_properties_format_version {}\n", MODEL_PROPERTIES_FORMAT_VERSION);
 
@@ -123,7 +123,7 @@ impl fmt::Display for ModelProperties {
     }
 }
 
-impl FromStr for ModelProperties {
+impl FromStr for Computed {
     type Err = gut::prelude::Error;
 
     fn from_str(s: &str) -> Result<Self> {
@@ -138,8 +138,8 @@ impl FromStr for ModelProperties {
     }
 }
 
-// parse a single entry of ModelProperties
-fn parse_model_results_single(part: &[&str]) -> Result<ModelProperties> {
+// parse a single entry of Computed
+fn parse_model_results_single(part: &[&str]) -> Result<Computed> {
     // collect records as header separated lines
     // blank lines are ignored
     let mut records: HashMap<&str, Vec<&str>> = HashMap::new();
@@ -162,7 +162,7 @@ fn parse_model_results_single(part: &[&str]) -> Result<ModelProperties> {
         warn!("suspicious part: {:?}", part);
     }
 
-    let mut results = ModelProperties::default();
+    let mut results = Computed::default();
     for (k, lines) in records {
         let header: Header = k.parse()?;
         let unit_factor = header.unit_factor;
@@ -210,7 +210,7 @@ fn parse_model_results_single(part: &[&str]) -> Result<ModelProperties> {
     Ok(results)
 }
 
-fn parse_model_results(stream: &str) -> Result<Vec<ModelProperties>> {
+fn parse_model_results(stream: &str) -> Result<Vec<Computed>> {
     if stream.trim().is_empty() {
         bail!("Attemp to parse empty string!");
     }
@@ -230,15 +230,20 @@ fn parse_model_results(stream: &str) -> Result<Vec<ModelProperties>> {
     for part in parts {
         // collect records as header separated lines
         // blank lines are ignored
-        let mp = parse_model_results_single(part)?;
-        all_results.push(mp);
+        // ignore empty part
+        if part.is_empty() {
+            continue;
+        } else {
+            let mp = parse_model_results_single(part)?;
+            all_results.push(mp);
+        }
     }
 
     Ok(all_results)
 }
 // 37f15603 ends here
 
-impl ModelProperties {
+impl Computed {
     /// Set item energy.
     pub fn set_energy(&mut self, e: f64) {
         self.energy = Some(e);
@@ -326,18 +331,18 @@ fn test_model_parse_results() {
     use serde_json;
 
     let txt = gchemol::io::read_file("tests/files/sample.txt").unwrap();
-    let r: ModelProperties = txt.parse().expect("model results");
+    let r: Computed = txt.parse().expect("model results");
 
     // serializing
     let serialized = serde_json::to_string(&r).unwrap();
     // and deserializing
-    let _: ModelProperties = serde_json::from_str(&serialized).unwrap();
+    let _: Computed = serde_json::from_str(&serialized).unwrap();
 
     // reformat
     let txt = format!("{}", r);
 
     // parse again
-    let r: ModelProperties = txt.parse().expect("model results");
+    let r: Computed = txt.parse().expect("model results");
 
     assert!(&r.molecule.is_some());
     let ref mol = r.molecule.unwrap();
@@ -350,7 +355,7 @@ fn test_model_parse_results() {
 fn test_model_parse_results_special() -> Result<()> {
 
     let txt = gchemol::io::read_file("./tests/files/sample_special.txt")?;
-    let r: ModelProperties = txt.parse()?;
+    let r: Computed = txt.parse()?;
     assert_eq!(r.energy.unwrap(), 0.0);
     assert_eq!(r.forces.unwrap()[0][0], 0.10525500903260E-03);
 

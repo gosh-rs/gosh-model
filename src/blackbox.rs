@@ -18,14 +18,13 @@
 //! ```
 // header:1 ends here
 
-// [[file:../models.note::*imports][imports:1]]
+// [[file:../models.note::c3765387][c3765387]]
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 
-use crate::core::*;
-use crate::*;
+use super::*;
 use gchemol::Molecule;
-// imports:1 ends here
+// c3765387 ends here
 
 // [[file:../models.note::*base][base:1]]
 pub struct BlackBoxModel {
@@ -56,7 +55,7 @@ pub struct BlackBoxModel {
 }
 // base:1 ends here
 
-// [[file:../models.note::*task][task:1]]
+// [[file:../models.note::045f62c4][045f62c4]]
 // NOTE: There is no implementation of Drop for std::process::Child
 /// A simple wrapper for killing child process on drop
 struct Task(std::process::Child);
@@ -68,7 +67,7 @@ impl Drop for Task {
         let child = &mut self.0;
 
         if let Ok(Some(x)) = child.try_wait() {
-            info!("child process exited gracefully.");
+            info!("child process exited gracefully with status {x:?}.");
         } else {
             // inform child to exit gracefully
             if let Err(e) = send_signal_term(child.id()) {
@@ -95,9 +94,9 @@ fn send_signal_term(pid: u32) -> Result<()> {
 
     Ok(())
 }
-// task:1 ends here
+// 045f62c4 ends here
 
-// [[file:../models.note::*env][env:1]]
+// [[file:../models.note::6cc8ead1][6cc8ead1]]
 mod env {
     use super::*;
     use tempfile::{tempdir, tempdir_in};
@@ -126,7 +125,7 @@ mod env {
                 tdir.path().join(run)
             } else {
                 let tdir = new_scratch_directory(self.scr_dir.as_deref())?;
-                info!("BBM scratching directory: {:?}", tdir);
+                debug!("BBM scratching directory: {:?}", tdir);
 
                 // copy run script to work/scratch directory
                 let dest = tdir.path().join(run);
@@ -148,15 +147,15 @@ mod env {
                 .with_context(|| format!("invalid template directory: {:?}", dir))?;
 
             // read environment variables from .env config if any
-            let mut envfile = envfile::EnvFile::new(dir.join(".env")).unwrap();
+            let envfile = envfile::EnvFile::new(dir.join(".env")).unwrap();
             for (key, value) in &envfile.store {
-                info!("found env var from {:?}: {}={}", &envfile.path, key, value);
+                debug!("found env var from {:?}: {}={}", &envfile.path, key, value);
             }
 
             let run_file = envfile.get("BBM_RUN_FILE").unwrap_or("submit.sh");
             let tpl_file = envfile.get("BBM_TPL_FILE").unwrap_or("input.hbs");
             let int_file_opt = envfile.get("BBM_INT_FILE");
-            let mut bbm = BlackBoxModel {
+            let bbm = BlackBoxModel {
                 run_file: dir.join(run_file),
                 tpl_file: dir.join(tpl_file),
                 int_file: int_file_opt.map(|f| dir.join(f)),
@@ -188,9 +187,9 @@ mod env {
         Ok(())
     }
 }
-// env:1 ends here
+// 6cc8ead1 ends here
 
-// [[file:../models.note::*cmd][cmd:1]]
+// [[file:../models.note::50a738a3][50a738a3]]
 mod cmd {
     use super::*;
     use std::process::{Child, Command, Stdio};
@@ -217,7 +216,7 @@ mod cmd {
 
             // when in interactive mode, we call interact.sh script for output
             let out = if let Some(int_file) = &self.int_file {
-                info!("interactive mode enabled");
+                debug!("interactive mode enabled");
                 // first time run: we store child proces to avoid being killed early
                 if self.task.is_none() {
                     let child = process_create_normal(&run_file, tdir, tpl_dir, &cdir)?;
@@ -266,8 +265,6 @@ mod cmd {
 
     // feed process stdin and get stdout
     fn process_communicate(mut child: std::process::Child, input: &str) -> Result<String> {
-        use std::io::Write;
-
         {
             let stdin = child.stdin.as_mut().context("Failed to open stdin")?;
             stdin.write_all(input.as_bytes()).context("Failed to write to stdin")?;
@@ -277,11 +274,11 @@ mod cmd {
         Ok(String::from_utf8_lossy(&output.stdout).to_string())
     }
 }
-// cmd:1 ends here
+// 50a738a3 ends here
 
-// [[file:../models.note::*compute][compute:1]]
+// [[file:../models.note::360435b0][360435b0]]
 impl BlackBoxModel {
-    fn compute_normal(&mut self, mol: &Molecule) -> Result<ModelProperties> {
+    fn compute_normal(&mut self, mol: &Molecule) -> Result<Computed> {
         // 1. render input text with the template
         let txt = self.render_input(&mol)?;
 
@@ -292,12 +289,12 @@ impl BlackBoxModel {
         let mp = output
             .parse()
             .with_context(|| format!("failed to parse computed results: {:?}", output))?;
-        
+
         self.ncalls += 1;
         Ok(mp)
     }
 
-    fn compute_normal_bunch(&mut self, mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
+    fn compute_normal_bunch(&mut self, mols: &[Molecule]) -> Result<Vec<Computed>> {
         // 1. render input text with the template
         let txt = self.render_input_bunch(mols)?;
 
@@ -305,13 +302,13 @@ impl BlackBoxModel {
         let output = self.submit_cmd(&txt)?;
 
         // 3. collect model properties
-        let all = ModelProperties::parse_all(&output)?;
-        
+        let all = Computed::parse_all(&output)?;
+
         self.ncalls += 1;
         Ok(all)
     }
 }
-// compute:1 ends here
+// 360435b0 ends here
 
 // [[file:../models.note::*pub/input][pub/input:1]]
 impl BlackBoxModel {
@@ -368,9 +365,9 @@ impl BlackBoxModel {
 }
 // pub/methods:1 ends here
 
-// [[file:../models.note::*pub/chemical model][pub/chemical model:1]]
+// [[file:../models.note::5ff4e3f1][5ff4e3f1]]
 impl ChemicalModel for BlackBoxModel {
-    fn compute(&mut self, mol: &Molecule) -> Result<ModelProperties> {
+    fn compute(&mut self, mol: &Molecule) -> Result<Computed> {
         let mp = self.compute_normal(mol)?;
 
         // sanity checking: the associated structure should have the same number
@@ -387,7 +384,7 @@ impl ChemicalModel for BlackBoxModel {
         Ok(mp)
     }
 
-    fn compute_bunch(&mut self, mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
+    fn compute_bunch(&mut self, mols: &[Molecule]) -> Result<Vec<Computed>> {
         let all = self.compute_normal_bunch(mols)?;
 
         // one-to-one mapping
@@ -395,7 +392,7 @@ impl ChemicalModel for BlackBoxModel {
         Ok(all)
     }
 }
-// pub/chemical model:1 ends here
+// 5ff4e3f1 ends here
 
 // [[file:../models.note::*test][test:1]]
 #[test]

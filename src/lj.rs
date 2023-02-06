@@ -2,14 +2,12 @@
 //! The Lennard-Jones model for test purpose
 // header:1 ends here
 
-// [[file:../models.note::*imports][imports:1]]
-use crate::core::*;
+// [[file:../models.note::5aceffc7][5aceffc7]]
+use super::*;
 
 use gchemol::Molecule;
 use vecfx::*;
-
-use crate::*;
-// imports:1 ends here
+// 5aceffc7 ends here
 
 // [[file:../models.note::*core][core:1]]
 #[derive(Clone, Copy, Debug)]
@@ -89,9 +87,9 @@ impl LennardJones {
 }
 // core:1 ends here
 
-// [[file:../models.note::*entry][entry:1]]
+// [[file:../models.note::d55b0da4][d55b0da4]]
 impl ChemicalModel for LennardJones {
-    fn compute(&mut self, mol: &Molecule) -> Result<ModelProperties> {
+    fn compute(&mut self, mol: &Molecule) -> Result<Computed> {
         if mol.lattice.is_some() {
             warn!("LJ model: periodic lattice will be ignored!");
         }
@@ -107,7 +105,7 @@ impl ChemicalModel for LennardJones {
 
         // calculate energy and forces
         let positions: Vec<_> = mol.positions().collect();
-        let dm = gchemol::geom::get_distance_matrix(&positions);
+        let dm = get_distance_matrix(&positions);
         for i in 0..natoms {
             for j in 0..i {
                 let r = dm[i][j];
@@ -123,20 +121,40 @@ impl ChemicalModel for LennardJones {
             }
         }
 
-        let mut mr = ModelProperties::default();
-        mr.set_energy(energy);
+        let mut computed = Computed::default();
+        computed.set_energy(energy);
 
         if self.derivative_order >= 1 {
-            mr.set_forces(forces);
+            computed.set_forces(forces);
         }
         if self.derivative_order >= 2 {
             unimplemented!();
         }
 
-        Ok(mr)
+        Ok(computed)
     }
 }
-// entry:1 ends here
+
+/// Return all distances between any pair of points
+fn get_distance_matrix(points: &[[f64; 3]]) -> Vec<Vec<f64>> {
+    use gchemol::geom::prelude::*;
+
+    let npts = points.len();
+
+    // fill distance matrix
+    let mut distmat = vec![];
+    for i in 0..npts {
+        let mut dijs = vec![];
+        for j in 0..npts {
+            let dij = points[i].distance(points[j]);
+            dijs.push(dij);
+        }
+        distmat.push(dijs);
+    }
+
+    distmat
+}
+// d55b0da4 ends here
 
 // [[file:../models.note::*test][test:1]]
 #[test]

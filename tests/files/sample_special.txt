@@ -1,0 +1,12 @@
+# meta data, also work as a separator for multiple entries
+@model_properties_file_format_version 0.1
+
+# total energy of system
+@energy unit_factor=0.0
+ -0.32933619218901E+00
+
+# cartesian forces, in 3xN. NOTE: the input gradients will be negatively scaled
+@forces unit_factor=-1.0
+ -0.10525500903260E-03 -0.49341715067988E-04 -0.41578514351576E-04
+ -0.10538090864721E-03 -0.44152035166424E-04 -0.46770596426924E-04
+  0.11741769879568E-03 -0.22970049507365E-03 -0.64344681036487E-04
