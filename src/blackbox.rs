@@ -310,9 +310,9 @@ impl BlackBoxModel {
 }
 // 360435b0 ends here
 
-// [[file:../models.note::*pub/input][pub/input:1]]
+// [[file:../models.note::5f8be97b][5f8be97b]]
 impl BlackBoxModel {
-    /// Render input using template
+    /// Render `mol` to input string using this template.
     pub fn render_input(&self, mol: &Molecule) -> Result<String> {
         // check NaN values in positions
         for (i, a) in mol.atoms() {
@@ -339,7 +339,7 @@ impl BlackBoxModel {
         Ok(txt)
     }
 }
-// pub/input:1 ends here
+// 5f8be97b ends here
 
 // [[file:../models.note::*pub/methods][pub/methods:1]]
 impl BlackBoxModel {

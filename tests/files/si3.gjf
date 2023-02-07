@@ -1,0 +1,15 @@
+%nprocshared=1
+%mem=20MW
+#p hf/3-21g* geom=connectivity scf=tight sp test
+
+Title Card Required
+
+0 1
+ Si                -1.24731253   -1.82276607    0.71800281
+ Si                -1.83319874   -0.21688206    2.50656269
+ Si                -2.21022660    0.31742144    0.12030346
+
+ 1 2 1.0 3 1.0
+ 2 3 1.0
+ 3
+
