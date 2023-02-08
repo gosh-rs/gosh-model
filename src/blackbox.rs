@@ -311,7 +311,7 @@ impl ChemicalModel for BlackBoxModel {
 }
 // 5ff4e3f1 ends here
 
-// [[file:../models.note::*test][test:1]]
+// [[file:../models.note::ba896ae9][ba896ae9]]
 #[test]
 fn test_bbm() -> Result<()> {
     // setup two BBMs
@@ -327,4 +327,4 @@ fn test_bbm() -> Result<()> {
 
     Ok(())
 }
-// test:1 ends here
+// ba896ae9 ends here
