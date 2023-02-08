@@ -95,7 +95,7 @@ impl Cmd {
 impl BlackBoxModel {
     /// Create cmd for onetime execution. Interactive run is not
     /// handled here.
-    pub fn create_onetime_cmd(&mut self, text: &str) -> Result<Cmd> {
+    fn create_onetime_cmd(&mut self, text: &str) -> Result<Cmd> {
         // TODO: prepare interact.sh
         let run_file = self.prepare_compute_env()?;
 
@@ -140,6 +140,16 @@ impl BlackBoxModel {
         };
 
         Ok(out)
+    }
+
+    #[cfg(feature = "adhoc")]
+    /// Create bash script pointing to `path` for onetime
+    /// execution. Interactive run is not handled here.
+    pub fn generate_bash_script(&mut self, mol: &Molecule, path: &Path) -> Result<()> {
+        let txt = self.render_input(&mol)?;
+        let cmd = self.create_onetime_cmd(&txt)?;
+        cmd.generate_bash_script(path)?;
+        Ok(())
     }
 }
 // 5323ec2e ends here
