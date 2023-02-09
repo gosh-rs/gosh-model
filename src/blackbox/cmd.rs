@@ -102,9 +102,9 @@ EOF
 
 impl BlackBoxModel {
     #[cfg(feature = "adhoc")]
-    /// Create bash script for remote execution. Interactive run is
-    /// not handled here.
-    pub fn bash_script_for_remote(&mut self, mol: &Molecule) -> Result<String> {
+    /// Return bash script ready for execution. Interactive run is not
+    /// handled here.
+    pub fn bash_script_for_execution(&mut self, mol: &Molecule) -> Result<String> {
         let txt = self.render_input(&mol)?;
         // do not use temp dir for remote execution
         let mut cmd = self.create_onetime_cmd(&txt)?;
