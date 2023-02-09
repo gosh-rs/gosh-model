@@ -14,38 +14,8 @@ pub struct Cmd {
     pub wrk_dir: PathBuf,
     /// The file to execute
     pub cmd: PathBuf,
-}
-
-impl Cmd {
-    /// Return bash script.
-    pub fn bash_script(&self) -> String {
-        let wrk_dir = self.wrk_dir.shell_escape_lossy();
-        let cmd = &self.cmd.shell_escape_lossy();
-        let export_env: String = self
-            .env_vars
-            .iter()
-            .map(|(var, value)| {
-                let value = value.shell_escape_lossy();
-                format!("export {var}={value}\n")
-            })
-            .collect();
-
-        format!(
-            "#cd {wrk_dir}
-{export_env}
-
-{cmd}
-"
-        )
-    }
-
-    /// Generate bash script file in `path` ready to execute locally
-    /// or remotely.
-    pub fn generate_bash_script(&self, path: &Path) -> Result<()> {
-        let script = self.bash_script();
-        gut::fs::write_script_file(path, &script)?;
-        Ok(())
-    }
+    /// stream for stdin
+    pub input: String,
 }
 // 6e72cbab ends here
 
@@ -63,7 +33,7 @@ impl Cmd {
     }
 
     // Run cmd with `input` as stdin, and returns output on success.
-    pub fn run_with_input(&self, input: &str) -> Result<String> {
+    pub fn run_with_input(&self) -> Result<String> {
         let mut child = self
             .create_command(&self.cmd)
             .stdin(Stdio::piped())
@@ -71,8 +41,12 @@ impl Cmd {
             .spawn()
             .with_context(|| format!("Failed to run script: {:?}", &self.cmd))?;
 
-        let stdin = child.stdin.as_mut().context("Failed to open stdin")?;
-        stdin.write_all(input.as_bytes()).context("Failed to write to stdin")?;
+        child
+            .stdin
+            .as_mut()
+            .context("Failed to open stdin")?
+            .write_all(self.input.as_bytes())
+            .context("Failed to write to stdin")?;
 
         let output = child.wait_with_output().context("Failed to read stdout")?;
         Ok(String::from_utf8_lossy(&output.stdout).to_string())
@@ -91,6 +65,41 @@ impl Cmd {
 // 6d640b53 ends here
 
 // [[file:../../models.note::8f5db6e5][8f5db6e5]]
+impl Cmd {
+    /// Return bash script.
+    pub fn bash_script(&self) -> String {
+        let wrk_dir = self.wrk_dir.shell_escape_lossy();
+        let cmd = &self.cmd.shell_escape_lossy();
+        let export_env: String = self
+            .env_vars
+            .iter()
+            .map(|(var, value)| {
+                let value = value.shell_escape_lossy();
+                format!("export {var}={value}\n")
+            })
+            .collect();
+
+        let input = &self.input;
+        format!(
+            "#cd {wrk_dir}
+{export_env}
+
+{cmd} <<EOF
+{input}
+EOF
+"
+        )
+    }
+
+    /// Generate bash script file in `path` ready to execute locally
+    /// or remotely.
+    pub fn generate_bash_script(&self, path: &Path) -> Result<()> {
+        let script = self.bash_script();
+        gut::fs::write_script_file(path, &script)?;
+        Ok(())
+    }
+}
+
 impl BlackBoxModel {
     #[cfg(feature = "adhoc")]
     /// Create bash script for remote execution. Interactive run is
@@ -101,6 +110,7 @@ impl BlackBoxModel {
         let mut cmd = self.create_onetime_cmd(&txt)?;
         cmd.cmd = self.run_file.to_owned();
         cmd.wrk_dir = self.run_file.parent().unwrap().to_owned();
+        let input = self.render_input(mol)?;
         Ok(cmd.bash_script())
     }
 }
@@ -133,7 +143,7 @@ impl BlackBoxModel {
 
         let env_vars = env_vars.into_iter().collect();
         let cmd = run_file.to_owned();
-        let cmd = Cmd { cmd, env_vars, wrk_dir };
+        let cmd = Cmd { cmd, env_vars, wrk_dir, input: text.into() };
         Ok(cmd)
     }
 
@@ -151,9 +161,9 @@ impl BlackBoxModel {
                 self.task = Task(child).into();
             }
             cmd.cmd = int_file.to_owned();
-            cmd.run_with_input(text)?
+            cmd.run_with_input()?
         } else {
-            cmd.run_with_input(text)?
+            cmd.run_with_input()?
         };
 
         Ok(out)
