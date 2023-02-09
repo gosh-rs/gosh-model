@@ -31,8 +31,7 @@ impl Cmd {
             .collect();
 
         format!(
-            "#! /usr/bin/env bash
-cd {wrk_dir}
+            "#cd {wrk_dir}
 {export_env}
 
 {cmd}
@@ -91,6 +90,22 @@ impl Cmd {
 }
 // 6d640b53 ends here
 
+// [[file:../../models.note::8f5db6e5][8f5db6e5]]
+impl BlackBoxModel {
+    #[cfg(feature = "adhoc")]
+    /// Create bash script for remote execution. Interactive run is
+    /// not handled here.
+    pub fn bash_script_for_remote(&mut self, mol: &Molecule) -> Result<String> {
+        let txt = self.render_input(&mol)?;
+        // do not use temp dir for remote execution
+        let mut cmd = self.create_onetime_cmd(&txt)?;
+        cmd.cmd = self.run_file.to_owned();
+        cmd.wrk_dir = self.run_file.parent().unwrap().to_owned();
+        Ok(cmd.bash_script())
+    }
+}
+// 8f5db6e5 ends here
+
 // [[file:../../models.note::5323ec2e][5323ec2e]]
 impl BlackBoxModel {
     /// Create cmd for onetime execution. Interactive run is not
@@ -99,6 +114,7 @@ impl BlackBoxModel {
         // TODO: prepare interact.sh
         let run_file = self.prepare_compute_env()?;
 
+        // export template directory for subprocess
         let mut env_vars = vec![];
         let tpl_dir = self
             .tpl_file
@@ -107,6 +123,7 @@ impl BlackBoxModel {
             .to_owned();
         env_vars.push(("BBM_TPL_DIR".into(), tpl_dir));
 
+        // export job working/starting directory for subprocess
         let job_dir = std::env::current_dir()?;
         env_vars.push(("BBM_JOB_DIR".into(), job_dir));
 
@@ -140,16 +157,6 @@ impl BlackBoxModel {
         };
 
         Ok(out)
-    }
-
-    #[cfg(feature = "adhoc")]
-    /// Create bash script pointing to `path` for onetime
-    /// execution. Interactive run is not handled here.
-    pub fn generate_bash_script(&mut self, mol: &Molecule, path: &Path) -> Result<()> {
-        let txt = self.render_input(&mol)?;
-        let cmd = self.create_onetime_cmd(&txt)?;
-        cmd.generate_bash_script(path)?;
-        Ok(())
     }
 }
 // 5323ec2e ends here
