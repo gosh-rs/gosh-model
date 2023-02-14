@@ -16,7 +16,7 @@ use gchemol::prelude::*;
 use gchemol::Molecule;
 
 /// Trait for chemical calculations
-pub trait ChemicalModel {
+pub trait ChemicalModel: Send {
     /// Define how to compute molecular properties, such as energy, forces, or
     /// structure ...
     fn compute(&mut self, mol: &Molecule) -> Result<Computed>;
