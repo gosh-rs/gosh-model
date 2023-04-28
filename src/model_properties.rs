@@ -131,7 +131,7 @@ impl FromStr for Computed {
 
         let n = all.len();
         if n == 0 {
-            bail!("no valid results found!");
+            bail!("no valid results found from:\n {s:?}!");
         }
 
         Ok(all[n - 1].clone())
