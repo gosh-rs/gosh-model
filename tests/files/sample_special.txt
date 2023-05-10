@@ -2,7 +2,7 @@
 @model_properties_file_format_version 0.1
 
 # total energy of system
-@energy unit_factor=0.0
+@energy unit_factor=1.0
  -0.32933619218901E+00
 
 # cartesian forces, in 3xN. NOTE: the input gradients will be negatively scaled
